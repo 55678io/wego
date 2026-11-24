@@ -5,7 +5,12 @@ Wego is the support team's softphone for Windows: answer and place calls through
 ## Features
 
 - SIP over **UDP, TCP or TLS** (any SIP phone system, like MicroSIP) or **WebRTC / WSS**
-- Hold, mute, in-call keypad (DTMF), blind transfer, call waiting with swap
+- Optional **SRTP** encryption of call audio
+- Up to **3 SIP accounts** at once, with "Call from" choice
+- Hold, mute, in-call keypad (DTMF), **blind and attended transfer**, call waiting with swap
+- **3-way conference** (merge / split)
+- **Call forwarding**: always, when busy, or when not answered
+- **BLF** extension status lights and **voicemail indicator** with one-click voicemail
 - Automatic call recording (stereo WAV: customer left, agent right) in `Documents\Wego Recordings`
 - Steady, clear audio: auto volume for both sides, noise reduction, jitter buffer, boost sliders
 - Hold music for the customer (original jazz included, or your own MP3) with a female-voice announcement after 30 seconds

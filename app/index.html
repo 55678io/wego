@@ -99,12 +99,24 @@ label{display:block;font-size:13px;font-weight:500;color:var(--mute);margin:14px
 .stop{background:var(--stop);border-color:var(--stop);color:#fff;font-weight:600}.stop:hover{background:#b91c1c}
 .ctl{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
 .heldbar{display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px 8px 8px 12px;border:1px solid var(--warn);background:color-mix(in srgb,var(--warn) 10%,var(--panel));border-radius:12px;font-size:13px}
-.heldbar span{flex:1}.heldbar button{min-height:36px;font-size:13px}
+.heldbar{flex-wrap:wrap}.heldbar span{flex:1 1 100%;font-weight:500}.heldbar button{flex:1;min-height:36px;font-size:13px}
 .xfer{display:flex;gap:6px;margin-top:8px}.xfer input{min-height:40px;padding:8px 10px;font-size:15px}.xfer button{flex:none;min-height:40px;font-size:13px;padding:0 10px}
 .upd{position:fixed;left:84px;bottom:20px;z-index:12;display:flex;align-items:center;gap:10px;background:var(--rail);color:#fff;border-radius:12px;padding:8px 8px 8px 14px;font-size:14px}
 .upd button{min-height:36px;font-size:13px}
 .drow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.drow button{min-height:38px;font-size:13px}
 .only-wss,.only-native{}
+.fromrow{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--mute)}.fromrow label{white-space:nowrap}.fromrow select{flex:1}.fromrow select{min-height:38px;padding:6px 10px;font-size:14px}
+.blf{margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
+.blf h4{margin:0 0 8px;font-size:13px;color:var(--mute);font-weight:600}
+.blfl{display:flex;flex-wrap:wrap;gap:6px}
+.bx{display:flex;align-items:center;gap:6px;min-height:34px;padding:0 10px;border-radius:99px;font-size:13px;font-family:"JetBrains Mono",monospace}
+.bx i{width:8px;height:8px;border-radius:50%;background:var(--mute)}
+.bx.idle i{background:var(--go)}.bx.busy i{background:var(--stop)}.bx.ringing i{background:var(--acc);animation:blink 1s infinite}
+.vm{display:flex;align-items:center;gap:6px;min-height:36px;border-radius:99px;font-size:13px;font-weight:600;color:var(--stop);border-color:color-mix(in srgb,var(--stop) 40%,var(--line))}
+.fwdtag{font-size:12px;font-weight:600;color:var(--warn)}
+.acct{border:1px solid var(--line);border-radius:12px;padding:4px 12px 12px;margin-top:12px;background:var(--soft)}
+.acct .hd{display:flex;align-items:center;justify-content:space-between;margin-top:8px}.acct .hd b{font-size:14px}
+.acct .hd button{min-height:32px;font-size:12px}
 a{color:var(--acc)}a:visited{color:var(--acc)}
 .screen.live{background:color-mix(in srgb,var(--go) 9%,var(--soft));border-color:color-mix(in srgb,var(--go) 35%,var(--line))}
 .screen.ring{background:color-mix(in srgb,var(--acc) 8%,var(--soft));border-color:color-mix(in srgb,var(--acc) 35%,var(--line))}
@@ -362,6 +374,7 @@ details.adv summary{cursor:pointer;font-size:14px;font-weight:600;margin-top:18p
       <h1>Calls</h1>
       <div class="peers" id="peers" aria-label="Teammates"></div>
       <div class="grow"></div>
+      <button class="vm hide" id="vm" title="Call voicemail">✉ <span id="vmTx">Voicemail</span></button>
       <button class="conn idle" id="conn" title="Phone system settings"><i></i><span id="connTx">Not connected · Demo mode</span></button>
       <div class="statussel"><span class="dot" id="sDot"></span>
         <select id="avail" aria-label="Availability"><option>Available</option><option>Busy</option><option>Away</option></select>
@@ -380,6 +393,7 @@ details.adv summary{cursor:pointer;font-size:14px;font-weight:600;margin-top:18p
           <div class="cid" id="sCid"></div>
           <div class="tm" id="sTm"></div>
         </div>
+        <div class="fromrow hide" id="fromRow"><label for="fromAcc" style="margin:0">Call from</label><select id="fromAcc"></select></div>
         <div class="numrow">
           <input id="dialIn" class="mono" placeholder="Enter a number" inputmode="tel" autocomplete="off" aria-label="Number to dial">
           <button id="bDel" aria-label="Delete last digit"><svg width="18" height="18"><use href="#i-back"/></svg></button>
@@ -396,7 +410,8 @@ details.adv summary{cursor:pointer;font-size:14px;font-weight:600;margin-top:18p
           <button id="bRec" disabled>Rec</button>
         </div>
         <form class="xfer hide" id="fXfer"><input id="xferIn" class="mono" placeholder="Transfer to number" inputmode="tel" autocomplete="off" aria-label="Transfer to"><button class="primary" type="submit">Transfer</button><button type="button" id="xferX">Cancel</button></form>
-        <div class="heldbar hide" id="heldbar"><span id="heldTx"></span><button type="button" id="bSwap">Swap</button></div>
+        <div class="heldbar hide" id="heldbar"><span id="heldTx"></span><button type="button" id="bSwap" title="Switch between the two calls">Swap</button><button type="button" id="bMerge" title="Talk to both callers together">Merge</button><button type="button" id="bConnect" title="Connect the two callers to each other and leave the call">Connect</button></div>
+        <div class="blf hide" id="blf"><h4>Extensions</h4><div class="blfl" id="blfList"></div></div>
         <div class="upd hide" id="upd"><span id="updTx"></span><button id="updGo" class="primary">Restart now</button></div>
         <button class="demo" id="bDemo">Simulate incoming call (demo)</button>
       </section>
@@ -494,6 +509,10 @@ details.adv summary{cursor:pointer;font-size:14px;font-weight:600;margin-top:18p
         <div class="only-native"><label for="sProxy">Outbound proxy <span class="muted">(optional)</span></label><input id="sProxy" class="mono" placeholder="sip.provider.com:5060"></div>
       </div>
       <p class="hint" id="trHint"></p>
+      <div class="g2 only-native">
+        <label class="ck"><input type="checkbox" id="sSrtp">Encrypt call audio (SRTP)</label>
+        <div><label for="sVm">Voicemail number</label><input id="sVm" class="mono" placeholder="*97"></div>
+      </div>
       <div class="only-wss">
       <label for="sWss">WebSocket (WSS) address</label>
       <input id="sWss" class="mono" placeholder="wss://gc24.yoopbx.com:8089/ws">
@@ -504,6 +523,23 @@ details.adv summary{cursor:pointer;font-size:14px;font-weight:600;margin-top:18p
         <div><label for="sSpk">Speaker / headset</label><select id="sSpk"><option value="-1">System default</option></select></div>
       </div>
       <div class="only-native">
+        <h3 class="sh3">More accounts</h3>
+        <p class="hint">Register up to two more SIP accounts at the same time (for example a second number). Incoming calls show which account they came to, and you can choose which one to call from.</p>
+        <div id="extraAccts"></div>
+        <div class="drow"><button type="button" id="addAcct">+ Add account</button></div>
+
+        <h3 class="sh3">Call forwarding</h3>
+        <div class="g2">
+          <div><label for="fMode">Forward calls</label><select id="fMode"><option value="off">Off</option><option value="always">Always</option><option value="busy">When I'm on a call</option><option value="noanswer">When I don't answer</option></select></div>
+          <div><label for="fTo">Forward to number</label><input id="fTo" class="mono" placeholder="1002 or +1 555 0100"></div>
+          <div><label for="fAfter">Ring time before forwarding (seconds)</label><input id="fAfter" type="number" min="5" max="120" value="20"></div>
+        </div>
+
+        <h3 class="sh3">Extension status (BLF)</h3>
+        <label for="sBlf">Extensions to watch</label>
+        <input id="sBlf" class="mono" placeholder="101, 102, 103">
+        <p class="hint">Shows whether each extension is free, ringing or busy, if your phone system supports it. Click one to call it.</p>
+
         <h3 class="sh3">Call audio</h3>
         <div class="g2">
           <label class="ck"><input type="checkbox" id="aAgc" checked>Auto volume (keeps voices steady and clear)</label>
@@ -655,7 +691,7 @@ function fmt(n){const d=String(n).replace(/\D/g,'');const x=d.length===11&&d[0]=
   return x.length===10?`+1 (${x.slice(0,3)}) ${x.slice(3,6)}-${x.slice(6)}`:String(n).trim()}
 const mmss=s=>`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
 function setCtl(on){for(const b of['bMute','bHold','bXfer','bRec']){$(b).disabled=!on;$(b).classList.remove('on')}$('bMute').textContent='Mute';$('bHold').textContent='Hold';if(on&&sip.rec!==false)$('bRec').classList.add('on');if(!on)$('fXfer').classList.add('hide')}
-function idle(){$('screen').className='screen';$('sSt').textContent='Ready';$('sNum').textContent='';$('sCid').textContent='Enter a number or wait for a call';$('sTm').textContent='';setCtl(false)}
+function idle(){$('screen').className='screen';$('sSt').textContent='Ready';$('sNum').textContent='';$('sCid').textContent=typeof fwdInfo==='string'&&fwdInfo?'Calls are being forwarded to '+fwdInfo:'Enter a number or wait for a call';$('sTm').textContent='';setCtl(false)}
 
 function connect(){cur.answeredAt=Date.now();$('screen').className='screen live';
   teamSend({type:'answered',number:cur.number,name:cur.name||'',dir:cur.dir});sendPresence();
@@ -667,7 +703,7 @@ function dialOut(){const v=$('dialIn').value.trim();if(cur||!v){if(!v)toast('Ent
   $('dialIn').value='';
   if(registered&&native()){
     const id=Date.now();cur={id,eid:'out-'+id,dir:'out',number:fmt(v),name:'',start:Date.now()};ringUI('Calling…');
-    DESK.engine.send({cmd:'call',id:cur.eid,target:v.replace(/\s/g,'')});return}
+    DESK.engine.send({cmd:'call',id:cur.eid,acc:$('fromRow').classList.contains('hide')?'a1':$('fromAcc').value,target:v.replace(/\s/g,'')});return}
   if(registered){
     const target=/^[\w.+-]+@/.test(v)?'sip:'+v:'sip:'+v.replace(/[^\d*#+]/g,'')+'@'+sip.domain;
     cur={id:Date.now(),dir:'out',number:fmt(v),name:'',start:Date.now()};ringUI('Calling…');
@@ -703,7 +739,9 @@ $('fXfer').addEventListener('submit',e=>{e.preventDefault();const t=$('xferIn').
   $('xferIn').value='';$('fXfer').classList.add('hide')});
 
 /* call waiting: held call */
-function showHeld(){$('heldbar').classList.toggle('hide',!held);if(held)$('heldTx').textContent='On hold: '+held.number+(held.name?' · '+held.name:'')}
+function showHeld(){$('heldbar').classList.toggle('hide',!held);if(!held)return;
+  $('heldTx').textContent='On hold: '+held.number+(held.name?' · '+held.name:'');
+  const nat=!!(held.eid&&cur&&cur.eid);$('bMerge').classList.toggle('hide',!nat);$('bConnect').classList.toggle('hide',!nat);$('bMerge').textContent='Merge'}
 $('bSwap').onclick=()=>{if(!held)return;
   if(cur&&cur.answeredAt){const a=cur;a.hold=true;if(a.eid)DESK.engine.send({cmd:'hold',id:a.eid,on:true});else if(a.session)try{a.session.hold()}catch{}
     clearInterval(tick);cur=held;held=a}
@@ -750,7 +788,9 @@ function finish(reason){clearTimeout(ringT);clearInterval(tick);ringtone(false);
   if(c.answeredAt)teamSend({type:'ended',number:c.number,name:c.name||'',dur,dir:c.dir});
   sendPresence();
   toast(status==='Missed'?'Missed call from '+c.number:'Call logged · '+mmss(dur));
-  if(held){cur=held;held=null;showHeld();resumeUI();$('sSt').textContent='Call on hold – press Hold to resume';$('bHold').classList.add('on');$('bHold').textContent='Resume'}}
+  if(held){cur=held;held=null;showHeld();resumeUI();
+    if(cur.conf){cur.conf=false;cur.hold=false}
+    else{cur.hold=true;$('sSt').textContent='Call on hold – press Hold to resume';$('bHold').classList.add('on');$('bHold').textContent='Resume'}}}
 function logCall(c,status,reason){calls.unshift({id:c.id||Date.now(),number:c.number,name:c.name||'',status,connected:false,start:c.start||Date.now(),dur:0,reason,agent:user.name,zip:'',email:'',notes:'',rec:false});
   lastNew=calls[0].id;save();render()}
 function save(){store.set('wego-calls-'+user.id,calls)}
@@ -934,10 +974,30 @@ function openSettings(){if(!user)return;
   $('sTr').value=sip.transport||(DESK?'udp':'wss');$('sProxy').value=sip.proxy||'';$('sAA').checked=!!sip.aa;
   if(DESK){DESK.getStartup().then(v=>$('sBoot').checked=!!v).catch(()=>{});DESK.engine.send({cmd:'devices'})}
   toggleTr();fillAudio();
+  $('sSrtp').checked=!!sip.srtp;$('sVm').value=sip.vm||'';
+  extraDraft=JSON.parse(JSON.stringify(sip.extra||[]));renderExtra();
+  const fw=sip.fwd||{};$('fMode').value=fw.mode||'off';$('fTo').value=fw.to||'';$('fAfter').value=fw.after||20;
+  $('sBlf').value=sip.blf||'';
   $('sMsg').className='msg';$('sMsg').textContent=registered?'Connected and registered as '+sip.user+'@'+sip.domain+'.':'';
   if(inPreview&&!registered)setMsg('bad','You are viewing Wego inside Claude, which blocks phone connections. To take real calls, open the Wego.html file in Chrome on your computer and connect there. You can still save your settings here.');
   $('mSet').classList.remove('hide');setTimeout(()=>$('sUser').focus(),40)}
 function closeSettings(){$('mSet').classList.add('hide')}
+let extraDraft=[];
+const TR_OPTS=[['udp','UDP'],['tcp','TCP'],['tls','TLS']];
+function renderExtra(){
+  $('extraAccts').innerHTML=extraDraft.map((a,i)=>`<div class="acct" data-i="${i}"><div class="hd"><b>Account ${i+2}${a.label?' · '+esc(a.label):''}</b><button type="button" data-rm="${i}">Remove</button></div><div class="g2">
+    <div><label>Name</label><input data-f="label" value="${esc(a.label||'')}" placeholder="e.g. Sales line"></div>
+    <div><label>SIP username / extension</label><input class="mono" data-f="user" value="${esc(a.user||'')}"></div>
+    <div><label>SIP domain / server</label><input class="mono" data-f="domain" value="${esc(a.domain||'')}" placeholder="gc24.yoopbx.com"></div>
+    <div><label>SIP password</label><input type="password" data-f="pass" value="${esc(a.pass||'')}"></div>
+    <div><label>Auth ID (optional)</label><input class="mono" data-f="auth" value="${esc(a.auth||'')}"></div>
+    <div><label>Transport</label><select data-f="transport">${TR_OPTS.map(([v,t])=>`<option value="${v}"${(a.transport||'udp')===v?' selected':''}>${t}</option>`).join('')}</select></div>
+  </div></div>`).join('');
+  $('addAcct').disabled=extraDraft.length>=2}
+$('extraAccts').addEventListener('input',e=>{const el=e.target.closest('[data-f]');if(!el)return;const i=+el.closest('.acct').dataset.i;extraDraft[i][el.dataset.f]=el.value});
+$('extraAccts').addEventListener('change',e=>{const el=e.target.closest('select[data-f]');if(!el)return;const i=+el.closest('.acct').dataset.i;extraDraft[i][el.dataset.f]=el.value});
+$('extraAccts').addEventListener('click',e=>{const b=e.target.closest('[data-rm]');if(!b)return;extraDraft.splice(+b.dataset.rm,1);renderExtra()});
+$('addAcct').onclick=()=>{if(extraDraft.length<2){extraDraft.push({transport:'udp',domain:$('sDomain').value.trim()});renderExtra()}};
 function toggleTr(){const t=$('sTr').value,w=t==='wss';
   document.querySelectorAll('.only-wss').forEach(e=>e.classList.toggle('hide',!w));
   document.querySelectorAll('.only-native').forEach(e=>e.classList.toggle('hide',w||!DESK));
@@ -958,7 +1018,11 @@ function readForm(){
   let wss=$('sWss').value.trim();if(wss&&!/^wss?:\/\//i.test(wss))wss='wss://'+wss;
   return{disp:$('sDisp').value.trim(),user:$('sUser').value.trim(),domain:$('sDomain').value.trim().replace(/^sips?:/i,'').replace(/\/.*$/,''),
     auth:$('sAuth').value.trim(),pass:$('sPass').value,wss,transport:$('sTr').value,proxy:$('sProxy').value.trim(),
-    mic:+$('sMic').value,spk:+$('sSpk').value,aa:$('sAA').checked,stun:$('sStun').value.trim(),exp:+$('sExp').value||0,auto:$('sAuto').checked,rec:$('sRec').checked}}
+    mic:+$('sMic').value,spk:+$('sSpk').value,aa:$('sAA').checked,
+    srtp:$('sSrtp').checked,vm:$('sVm').value.trim(),
+    extra:extraDraft.map(a=>({label:(a.label||'').trim(),user:(a.user||'').trim(),domain:(a.domain||'').trim().replace(/^sips?:/i,''),pass:a.pass||'',auth:(a.auth||'').trim(),transport:a.transport||'udp'})).filter(a=>a.user&&a.domain&&a.pass).slice(0,2),
+    fwd:{mode:$('fMode').value,to:$('fTo').value.trim(),after:Math.min(120,Math.max(5,+$('fAfter').value||20))},
+    blf:$('sBlf').value.trim(),stun:$('sStun').value.trim(),exp:+$('sExp').value||0,auto:$('sAuto').checked,rec:$('sRec').checked}}
 function saveTeam(){let t=$('sTeam').value.trim();if(t&&!/^wss?:\/\//i.test(t))t='ws://'+t;
   if(t!==store.get('wego-team','')){store.set('wego-team',t);teamWsStart()}}
 function saveForm(){saveTeam();const f=readForm();
@@ -985,7 +1049,11 @@ async function sipConnect(){
     setConn('busy','Connecting…');setMsg('','Registering over '+sip.transport.toUpperCase()+' …');
     DESK.engine.send({cmd:'setDevices',input:Number.isFinite(sip.mic)?sip.mic:-1,output:Number.isFinite(sip.spk)?sip.spk:-1});
     pushAudio();
-    DESK.engine.send({cmd:'register',user:sip.user,auth:sip.auth||'',pass:sip.pass,domain:sip.domain,proxy:sip.proxy||'',transport:sip.transport,expiry:sip.exp||300,display:sip.disp||user.name});
+    for(const k in accState)delete accState[k];
+    accState.a1={label:sip.user,user:sip.user,state:'connecting'};
+    (sip.extra||[]).forEach((a,i)=>{const id='a'+(i+2);accState[id]={label:a.label||a.user,user:a.user,state:'connecting'};
+      DESK.engine.send({cmd:'register',acc:id,label:a.label||a.user,user:a.user,auth:a.auth||'',pass:a.pass,domain:a.domain,proxy:'',transport:a.transport||'udp',expiry:sip.exp||300,display:sip.disp||user.name,srtp:!!sip.srtp})});
+    DESK.engine.send({cmd:'register',acc:'a1',srtp:!!sip.srtp,voicemail:sip.vm||'',user:sip.user,auth:sip.auth||'',pass:sip.pass,domain:sip.domain,proxy:sip.proxy||'',transport:sip.transport,expiry:sip.exp||300,display:sip.disp||user.name});
     return}
   if(!sip.wss||!sip.user){openSettings();return}
   if(inPreview){setConn('bad','Preview – open Wego.html to connect');setMsg('bad','Real calls cannot connect inside the Claude preview. Open the Wego.html file in Chrome on your computer, sign in, and press Save & connect there.');return}
@@ -1013,7 +1081,7 @@ async function sipConnect(){
 
 let engineUsed=false;
 function sipDisconnect(silent){registered=false;
-  if(engineUsed&&DESK){DESK.engine.send({cmd:'unregister'});engineUsed=false}
+  if(engineUsed&&DESK){DESK.engine.send({cmd:'unregister'});engineUsed=false;$('fromRow').classList.add('hide');$('vm').classList.add('hide');blfExts=[];renderBlf();fwdInfo=''}
   if(ua){const u=ua;ua=null;try{u.stop()}catch{}}
   if(!silent&&user)setConn('idle','Not connected · Demo mode')}
 
@@ -1052,16 +1120,44 @@ function reasonText(ev,c,wasUp){const C=JsSIP.C.causes,o=ev.originator,k=ev.caus
   return(o==='local'?'Ended by agent':'Ended by customer')+(k?' ('+k+')':'')}
 
 /* ---------- native engine events (UDP / TCP / TLS) ---------- */
+const accState={},blfState={};let fwdInfo='',blfExts=[];
+const anyOk=()=>Object.values(accState).some(a=>a.state==='ok');
+function updateConnPill(){const all=Object.values(accState),ok=all.filter(a=>a.state==='ok');
+  if(!ok.length){setConn('bad','Not registered');return}
+  setConn('ok',all.length>1?`Connected · ${ok.length} of ${all.length} accounts`:'Connected · '+sip.user+' · '+String(sip.transport||'').toUpperCase());
+  const opts=Object.entries(accState).filter(([,a])=>a.state==='ok');
+  $('fromAcc').innerHTML=opts.map(([id,a])=>`<option value="${id}">${esc(a.label)}</option>`).join('');
+  $('fromRow').classList.toggle('hide',opts.length<2)}
+function onAccReg(ev){const a=accState[ev.acc];if(!a)return;a.state=ev.state;registered=anyOk();
+  if(ev.state==='failed'||ev.state==='retrying')toast(a.label+': '+ev.reason);
+  if(registered)updateConnPill()}
+function pushCallOpts(){if(!native())return;const fw=sip.fwd||{};
+  DESK.engine.send({cmd:'forward',mode:fw.mode||'off',target:fw.to||'',after:+fw.after||20});
+  blfExts=(sip.blf||'').split(/[,;\s]+/).map(x=>x.trim()).filter(Boolean).slice(0,24);
+  DESK.engine.send({cmd:'blf',acc:'a1',exts:blfExts});renderBlf()}
+function renderBlf(){$('blf').classList.toggle('hide',!blfExts.length);
+  $('blfList').innerHTML=blfExts.map(x=>{const st=blfState[x]||'unknown';return`<button type="button" class="bx ${st}" data-ext="${esc(x)}" title="${esc(x)}: ${st==='unknown'?'status unknown':st}"><i></i>${esc(x)}</button>`}).join('')}
+$('blfList').addEventListener('click',e=>{const b=e.target.closest('[data-ext]');if(!b)return;if(cur&&cur.answeredAt){$('xferIn').value=b.dataset.ext;$('fXfer').classList.remove('hide');return}if(cur)return;$('dialIn').value=b.dataset.ext;dialOut()});
+$('vm').onclick=()=>{if(cur){toast('Finish the current call first.');return}$('dialIn').value=sip.vm||'*97';dialOut()};
+function onConference(ev){if(!held||!cur)return;
+  const on=!!ev.on;held.conf=cur.conf=on;held.hold=!on;
+  if(on){$('heldTx').textContent='Conference: '+held.number+' + '+cur.number;$('bMerge').textContent='Split';$('sSt').textContent='Conference · 3 people';toast('Calls merged. Everyone can hear each other.')}
+  else{showHeld();toast('Conference split. '+held.number+' is on hold.')}}
+$('bMerge').onclick=()=>{if(!held||!cur?.answeredAt||!held.eid||!cur.eid)return;DESK.engine.send({cmd:'conference',id:held.eid,with:cur.eid,on:!held.conf})};
+$('bConnect').onclick=()=>{if(!held||!cur?.answeredAt||!held.eid||!cur.eid)return;DESK.engine.send({cmd:'attxfer',id:held.eid,with:cur.eid});toast('Connecting '+held.number+' to '+cur.number+'…')};
 function engIncoming(ev){
   const c={id:Date.now(),eid:ev.id,dir:'in',number:fmt(ev.number||'Unknown'),name:ev.name||'',start:Date.now()};
   if($('avail').value!=='Available'){DESK.engine.send({cmd:'reject',id:ev.id,code:486});logCall(c,'Missed','Rejected – agent status was '+$('avail').value);return}
   if(cur&&cur.answeredAt&&!held&&!waiting){waiting=c;
     $('iNum').textContent=c.number;$('iCid').textContent=(c.name||'Unknown caller')+' · call waiting';$('iAns').textContent='Hold & answer';
     $('incoming').classList.remove('hide');chime(600);desk('Call waiting · '+c.number,c.name||'Unknown caller',true);return}
+  if(Object.keys(accState).length>1&&ev.acc&&accState[ev.acc])c.name=(c.name?c.name+' · ':'')+'to '+accState[ev.acc].label;
   if(cur||waiting){DESK.engine.send({cmd:'reject',id:ev.id,code:486});logCall(c,'Missed','Rejected – agent was busy on other calls');return}
   cur=c;showIncoming();
   if(sip.aa)ringT=setTimeout(()=>{if(cur===c&&!c.answeredAt)$('iAns').click()},2000)}
 function engEnded(ev){
+  const known=(cur&&cur.eid===ev.id)||(held&&held.eid===ev.id)||(waiting&&waiting.eid===ev.id);
+  if(!known){if(ev.forwarded||ev.number)logCall({number:fmt(ev.number||'Unknown'),name:ev.name||''},'Missed',ev.reason||'Call ended');return}
   if(waiting&&waiting.eid===ev.id){const w=waiting;waiting=null;$('incoming').classList.add('hide');logCall(w,'Missed',ev.reason||'Caller hung up');return}
   if(held&&held.eid===ev.id){const h=held;held=null;showHeld();
     const dur=h.answeredAt?Math.max(1,Math.round((Date.now()-h.answeredAt)/1000)):0;
@@ -1074,8 +1170,10 @@ if(DESK&&DESK.engine){
   DESK.engine.on(ev=>{if(!user||!ev)return;
     switch(ev.ev){
       case 'reg':
-        if(ev.state==='ok'){registered=true;setConn('ok','Connected · '+sip.user+' · '+String(sip.transport||'').toUpperCase());setMsg('ok','Registered as '+sip.user+'@'+sip.domain+'. Calls will ring in Wego.');toast('Phone system connected.')}
-        else if(ev.state==='failed'){registered=false;setConn('bad','Registration failed');setMsg('bad','Registration failed: '+ev.reason)}
+        if(ev.acc&&ev.acc!=='a1'){onAccReg(ev);break}
+        if(accState.a1)accState.a1.state=ev.state;
+        if(ev.state==='ok'){pushCallOpts();registered=true;updateConnPill();setMsg('ok','Registered as '+sip.user+'@'+sip.domain+'. Calls will ring in Wego.');toast('Phone system connected.')}
+        else if(ev.state==='failed'){registered=anyOk();if(registered)updateConnPill();else setConn('bad','Registration failed');setMsg('bad','Registration failed: '+ev.reason)}
         else if(ev.state==='retrying'){registered=false;setConn('busy','Retrying…');setMsg('bad','Problem: '+ev.reason+'. Retrying…')}
         else if(ev.state==='connecting')setConn('busy','Connecting…');
         else if(ev.state==='off'){registered=false;setConn('idle','Not connected · Demo mode')}
@@ -1090,6 +1188,10 @@ if(DESK&&DESK.engine){
         else{if(cur&&cur.eid===ev.id)cur.xferTo=ev.target;toast('Call transferred to '+ev.target+'.')}
         break;
       case 'devices':fillDevices(ev);break;
+      case 'blf':blfState[ev.ext]=ev.state;renderBlf();break;
+      case 'mwi':if(ev.waiting||ev.newMsgs>0){$('vm').classList.remove('hide');$('vmTx').textContent='Voicemail'+(ev.newMsgs?' · '+ev.newMsgs:'')}else $('vm').classList.add('hide');break;
+      case 'forward':fwdInfo=ev.mode!=='off'?ev.target:'';if(!cur)idle();break;
+      case 'conference':onConference(ev);break;
       case 'hold':$('hInfo').textContent=(ev.seconds?ev.seconds+' s of music':'No music')+(ev.announce?' · announcement ready'+(ev.voice?' ('+ev.voice.replace(/^Microsoft /,'').replace(/ Desktop.*$/,'')+')':''):' · preparing announcement…');break;
       case 'error':toast(ev.msg);break;
       case 'engineExit':

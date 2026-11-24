@@ -571,7 +571,7 @@ public static class Program
             int dur = Active ? (int)(DateTime.Now - _answeredAt).TotalSeconds : 0;
             Active = false;
             Remove(Id);
-            Emit(new { ev = "ended", id = Id, by, reason, code, duration = dur, recording = rec, forwarded });
+            Emit(new { ev = "ended", id = Id, by, reason, code, duration = dur, recording = rec, forwarded, number = Number, name = Name });
         }
     }
 }
