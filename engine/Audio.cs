@@ -329,12 +329,40 @@ internal sealed class Media
     Thread _holdThread;
     HoldAudio.Player _holdPlayer;
 
-    public static Media Create(Program.Line line)
+    // ---- 3-way conference: audio received on one call is mixed into what we send on the other
+    readonly List<Media> _peers = new();
+    readonly object _confLock = new();
+    readonly Queue<short> _confBuf = new();
+
+    public static void Link(Media a, Media b)
+    {
+        lock (a._confLock) if (!a._peers.Contains(b)) a._peers.Add(b);
+        lock (b._confLock) if (!b._peers.Contains(a)) b._peers.Add(a);
+    }
+    public static void Unlink(Media a, Media b)
+    {
+        lock (a._confLock) { a._peers.Remove(b); a._confBuf.Clear(); }
+        lock (b._confLock) { b._peers.Remove(a); b._confBuf.Clear(); }
+    }
+    void PushConf(short[] pcm16k)
+    {
+        lock (_confLock)
+        {
+            foreach (var x in pcm16k) _confBuf.Enqueue(x);
+            while (_confBuf.Count > Mic.Rate * 3 / 10) _confBuf.Dequeue(); // keep it under 300 ms
+        }
+    }
+
+    public static Media Create(Program.Line line, bool srtp)
     {
         var m = new Media();
         m._source = new AudioExtrasSource(new AudioEncoder(), new AudioSourceOptions { AudioSource = AudioSourcesEnum.None });
         m._source.RestrictFormats(f => f.Codec == AudioCodecsEnum.G722 || f.Codec == AudioCodecsEnum.PCMU || f.Codec == AudioCodecsEnum.PCMA);
-        m.Session = new VoIPMediaSession(new MediaEndPoints { AudioSource = m._source });
+        m.Session = new VoIPMediaSession(new VoIPMediaSessionConfig
+        {
+            MediaEndPoint = new MediaEndPoints { AudioSource = m._source },
+            RtpSecureMediaOption = srtp ? RtpSecureMediaOptionEnum.SdpCryptoNegotiation : RtpSecureMediaOptionEnum.None
+        });
         m.Session.AcceptRtpFromAny = true;
         m.Session.OnAudioFormatsNegotiated += formats =>
         {
@@ -387,7 +415,10 @@ internal sealed class Media
             var bytes = Pcm.ToBytes(pcm);
             _outBuf.AddSamples(bytes, 0, bytes.Length);
         }
-        if (Recording && _path != null && !_onHold) lock (_recLock) _recRemote.AddRange(_codecRate == 16000 ? pcm : Pcm.Resample(pcm, 8000, 16000));
+        var p16 = _codecRate == 16000 ? pcm : Pcm.Resample(pcm, 8000, 16000);
+        Media[] peers; lock (_confLock) peers = _peers.ToArray();
+        foreach (var p in peers) p.PushConf(p16);
+        if (Recording && _path != null && !_onHold) lock (_recLock) _recRemote.AddRange(p16);
     }
 
     // ---- microphone -> customer
@@ -400,6 +431,11 @@ internal sealed class Media
         _micAgc.Process(pcm, AudioSettings.MicGain, AudioSettings.Agc, AudioSettings.NoiseGate);
         if (_muted) Array.Clear(pcm);
         if (Recording && _path != null && !_muted) lock (_recLock) _recLocal.AddRange(pcm);
+        lock (_confLock)
+        {
+            for (int i = 0; i < pcm.Length && _confBuf.Count > 0; i++)
+                pcm[i] = (short)Math.Clamp(pcm[i] + _confBuf.Dequeue(), -32767, 32767);
+        }
         Send(pcm);
     }
 
