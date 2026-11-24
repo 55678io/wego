@@ -484,12 +484,23 @@ details.adv summary{cursor:pointer;font-size:14px;font-weight:600;margin-top:18p
 
 <script>
 {
-const ACCESS_CODE='6macs0';
+const ACCESS_HASH='d2b82bb1a906662867c6a52b81063afbdf537721a5131ef0afab0f54b900cd28'; // SHA-256 of the team access code
 const PROFILES=[
-  {id:'eric',name:'Eric',pass:'chatpataladka',color:'#2563eb'},
-  {id:'james',name:'James',pass:'vishal007',color:'#0f766e'}
+  {id:'eric',name:'Eric',hash:'bad39d85e2b11e4a9272708cf7cb6532632bb87717dbab6ed2d4e765f6f7e90f',color:'#2563eb'},
+  {id:'james',name:'James',hash:'d6efe8085ce149438e0082b30ff3cb5ce7111f0e921d83e19712cc0b32324591',color:'#0f766e'}
 ];
 const $=id=>document.getElementById(id);
+async function sha256(t){const d=new TextEncoder().encode(t);
+  if(window.crypto&&crypto.subtle){const b=await crypto.subtle.digest('SHA-256',d);return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+  return sha256js(d)}
+function sha256js(m){const K=[],H=[];let n=2,c=0;const f=x=>(x-Math.floor(x))*4294967296|0;
+  while(c<64){let p=1;for(let i=2;i*i<=n;i++)if(n%i===0){p=0;break}if(p){if(c<8)H[c]=f(n**.5);K[c++]=f(n**(1/3))}n++}
+  const l=m.length,w=new Uint8Array(((l+9+63)>>6)<<6);w.set(m);w[l]=128;const dv=new DataView(w.buffer);dv.setUint32(w.length-4,l*8);
+  const r=(x,y)=>x>>>y|x<<32-y;
+  for(let o=0;o<w.length;o+=64){const W=[];for(let i=0;i<64;i++)W[i]=i<16?dv.getUint32(o+i*4):(r(W[i-2],17)^r(W[i-2],19)^W[i-2]>>>10)+W[i-7]+(r(W[i-15],7)^r(W[i-15],18)^W[i-15]>>>3)+W[i-16]|0;
+    let[a,b,cc,d,e,g,h,k]=H;for(let i=0;i<64;i++){const t1=k+(r(e,6)^r(e,11)^r(e,25))+(e&g^~e&h)+K[i]+W[i]|0,t2=(r(a,2)^r(a,13)^r(a,22))+(a&b^a&cc^b&cc)|0;k=h;h=g;g=e;e=d+t1|0;d=cc;cc=b;b=a;a=t1+t2|0}
+    [a,b,cc,d,e,g,h,k].forEach((v,i)=>H[i]=H[i]+v|0)}
+  return H.map(v=>(v>>>0).toString(16).padStart(8,'0')).join('')}
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 let user=null,pending=null,calls=[],cur=null,tick=null,ringT=null,openId=null,filter='all',lastNew=null;
@@ -499,8 +510,8 @@ const JSSIP_URL='https://cdn.jsdelivr.net/npm/jssip@3.10.1/dist/jssip.min.js';
 /* ---------- sign-in steps ---------- */
 function step(id){for(const f of['fCode','fProf','fPass'])$(f).classList.toggle('hide',f!==id);
   const el=$(id).querySelector('input');if(el)setTimeout(()=>el.focus(),30)}
-$('fCode').addEventListener('submit',e=>{e.preventDefault();
-  if($('code').value.trim()===ACCESS_CODE){$('eCode').textContent='';$('code').value='';step('fProf')}
+$('fCode').addEventListener('submit',async e=>{e.preventDefault();
+  if(await sha256('wego:'+$('code').value.trim())===ACCESS_HASH){$('eCode').textContent='';$('code').value='';step('fProf')}
   else $('eCode').textContent='That access code is incorrect. Please try again.'});
 $('plist').innerHTML=PROFILES.map(p=>`<button class="prof" data-id="${p.id}"><div class="av" style="background:${p.color}">${p.name[0]}</div><div><b>${p.name}</b><span>Support agent</span></div><span class="chev">›</span></button>`).join('');
 $('plist').addEventListener('click',e=>{const b=e.target.closest('.prof');if(!b)return;
@@ -509,8 +520,8 @@ $('plist').addEventListener('click',e=>{const b=e.target.closest('.prof');if(!b)
   $('pass').value='';$('ePass').textContent='';step('fPass')});
 $('toCode').onclick=()=>step('fCode');
 $('toProf').onclick=()=>step('fProf');
-$('fPass').addEventListener('submit',e=>{e.preventDefault();
-  if($('pass').value===pending.pass)signIn(pending);else{$('ePass').textContent='Incorrect password for '+pending.name+'.';$('pass').select()}});
+$('fPass').addEventListener('submit',async e=>{e.preventDefault();
+  if(await sha256('wego:'+$('pass').value)===pending.hash)signIn(pending);else{$('ePass').textContent='Incorrect password for '+pending.name+'.';$('pass').select()}});
 
 function signIn(p){user=p;
   $('mAv').textContent=p.name[0];$('mAv').style.background=p.color;$('mName').textContent=p.name;
