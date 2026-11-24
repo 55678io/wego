@@ -15,7 +15,6 @@ using SIPSorcery.Net;
 using SIPSorcery.SIP;
 using SIPSorcery.SIP.App;
 using SIPSorceryMedia.Abstractions;
-using SIPSorceryMedia.Windows;
 
 namespace Wego.Engine;
 
@@ -33,7 +32,9 @@ public static class Program
     {
         Console.InputEncoding = Encoding.UTF8;
         Console.OutputEncoding = Encoding.UTF8;
-        Emit(new { ev = "ready", version = "1.0" });
+        TimerResolution.High();
+        Emit(new { ev = "ready", version = "1.2" });
+        HoldAudio.Init();
 
         string line;
         while ((line = await Console.In.ReadLineAsync()) != null)
@@ -68,8 +69,27 @@ public static class Program
             case "record": SetRecording(id, Bool(r, "on")); break;
             case "devices": Emit(new { ev = "devices", inputs = AudioDevices.Inputs(), outputs = AudioDevices.Outputs() }); break;
             case "setDevices":
-                _inDevice = Int(r, "input", -1); _outDevice = Int(r, "output", -1);
+                _inDevice = Int(r, "input", -1); _outDevice = Int(r, "output", -1); Mic.Restart();
                 Emit(new { ev = "log", msg = $"Audio devices set: in={_inDevice} out={_outDevice}" }); break;
+            case "setAudio":
+                AudioSettings.Agc = !r.TryGetProperty("agc", out var ag) || ag.ValueKind != JsonValueKind.False;
+                AudioSettings.NoiseGate = !r.TryGetProperty("gate", out var ng) || ng.ValueKind != JsonValueKind.False;
+                AudioSettings.MicGain = Math.Clamp(Flt(r, "micGain", 1f), 0.25f, 4f);
+                AudioSettings.SpkGain = Math.Clamp(Flt(r, "spkGain", 1f), 0.25f, 4f);
+                break;
+            case "setHold":
+                HoldAudio.Announce = !r.TryGetProperty("announce", out var an) || an.ValueKind != JsonValueKind.False;
+                HoldAudio.AnnounceAfterSec = Math.Clamp(Int(r, "after", 30), 5, 600);
+                var music = Str(r, "music");
+                var text = Str(r, "text");
+                _ = Task.Run(() =>
+                {
+                    HoldAudio.LoadMusic(music);
+                    if (!string.IsNullOrWhiteSpace(text) && text != HoldAudio.Text || HoldAudio.Announcement.Length == 0) HoldAudio.MakeAnnouncement(text);
+                });
+                break;
+            case "previewHold": HoldAudio.Preview(Int(r, "seconds", 40)); break;
+            case "stopPreview": HoldAudio.StopPreview(); break;
             case "setRecordingFolder":
                 var dir = Str(r, "path"); if (!string.IsNullOrWhiteSpace(dir)) _recDir = dir; break;
             case "quit": Shutdown(); Environment.Exit(0); break;
@@ -243,6 +263,7 @@ public static class Program
 
     static string Str(JsonElement r, string k) => r.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
     static int Int(JsonElement r, string k, int d) => r.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var i) ? i : d;
+    static float Flt(JsonElement r, string k, float d) => r.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetDouble(out var x) ? (float)x : d;
     static bool Bool(JsonElement r, string k) => r.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.True;
     static string CleanNumber(string n) => new string((n ?? "").Where(c => char.IsDigit(c) || c == '*' || c == '#' || c == '+').ToArray());
     static string DtmfChar(byte k) => k switch { 10 => "*", 11 => "#", < 10 => k.ToString(), _ => "?" };
@@ -312,6 +333,7 @@ public static class Program
         {
             Active = true; _answeredAt = DateTime.Now;
             Media?.StartRecording(Number, Inbound);
+            Media?.Begin();
             Emit(new { ev = "answered", id = Id });
         }
 
@@ -320,6 +342,7 @@ public static class Program
             if (Ua == null || !Active) return;
             try { if (on) Ua.PutOnHold(); else Ua.TakeOffHold(); } catch { }
             OnHold = on;
+            Media?.SetHold(on);
             Emit(new { ev = "held", id = Id, on });
         }
 
@@ -350,101 +373,6 @@ public static class Program
         }
     }
 
-    // ------------------------------------------------------------------ media + recording
-    internal class Media
-    {
-        public VoIPMediaSession Session;
-        WindowsAudioEndPoint _audio;
-        readonly AudioEncoder _decRemote = new(), _decLocal = new();
-        AudioFormat _format;
-        bool _hasFormat;
-        bool _muted;
-        public bool Recording = true;
-        readonly List<short> _remote = new(), _local = new();
-        readonly object _recLock = new();
-        string _path;
-
-        public static Media Create(Line line)
-        {
-            var m = new Media();
-            m._audio = new WindowsAudioEndPoint(new AudioEncoder(), Program.OutDevice, Program.InDevice);
-            m._audio.RestrictFormats(f => f.Codec == AudioCodecsEnum.PCMU || f.Codec == AudioCodecsEnum.PCMA || f.Codec == AudioCodecsEnum.G722);
-            m.Session = new VoIPMediaSession(new MediaEndPoints { AudioSource = m._audio, AudioSink = m._audio });
-            m.Session.AcceptRtpFromAny = true;
-            m.Session.OnAudioFormatsNegotiated += formats => { if (formats != null && formats.Count > 0) { m._format = formats[0]; m._hasFormat = true; } };
-            m.Session.OnRtpPacketReceived += (ep, media, pkt) =>
-            {
-                if (media != SDPMediaTypesEnum.audio || !m.Recording || m._path == null || pkt?.Payload == null) return;
-                if (pkt.Header.PayloadType > 34) return; // skip DTMF / comfort noise
-                m.Append(m._remote, m._decRemote, pkt.Payload);
-            };
-            m._audio.OnAudioSourceEncodedSample += (dur, sample) =>
-            {
-                if (!m.Recording || m._path == null || m._muted) return;
-                m.Append(m._local, m._decLocal, sample);
-            };
-            return m;
-        }
-
-        void Append(List<short> buf, AudioEncoder dec, byte[] payload)
-        {
-            var fmt = _hasFormat ? _format : new AudioFormat(SDPWellKnownMediaFormatsEnum.PCMU);
-            try
-            {
-                var pcm = dec.DecodeAudio(payload, fmt);
-                lock (_recLock) { buf.AddRange(pcm); }
-            }
-            catch { }
-        }
-
-        public void SetMute(bool on)
-        {
-            if (on == _muted) return;
-            _muted = on;
-            if (on) _audio.OnAudioSourceEncodedSample -= Session.SendAudio;
-            else _audio.OnAudioSourceEncodedSample += Session.SendAudio;
-        }
-
-        public void StartRecording(string number, bool inbound)
-        {
-            var now = DateTime.Now;
-            var dir = Path.Combine(Program.RecordingFolder, now.ToString("yyyy-MM-dd"));
-            Directory.CreateDirectory(dir);
-            var clean = new string((number ?? "unknown").Where(char.IsLetterOrDigit).ToArray());
-            _path = Path.Combine(dir, $"{now:HH-mm-ss}_{(inbound ? "in" : "out")}_{(clean.Length > 0 ? clean : "unknown")}.wav");
-        }
-
-        public string Close()
-        {
-            try { Session?.Close("call ended"); } catch { }
-            try { _audio?.CloseAudio(); } catch { }
-            if (_path == null) return null;
-            short[] a, b;
-            lock (_recLock) { a = _remote.ToArray(); b = _local.ToArray(); }
-            if (a.Length == 0 && b.Length == 0) return null;
-            int rate = _hasFormat && _format.Codec == AudioCodecsEnum.G722 ? 16000 : 8000;
-            WriteWav(_path, a, b, rate);
-            return _path;
-        }
-
-        // Stereo WAV: left = customer, right = agent
-        static void WriteWav(string path, short[] left, short[] right, int rate)
-        {
-            int n = Math.Max(left.Length, right.Length);
-            using var fs = new FileStream(path, FileMode.Create, FileAccess.Write);
-            using var w = new BinaryWriter(fs);
-            int dataLen = n * 4;
-            w.Write(Encoding.ASCII.GetBytes("RIFF")); w.Write(36 + dataLen); w.Write(Encoding.ASCII.GetBytes("WAVE"));
-            w.Write(Encoding.ASCII.GetBytes("fmt ")); w.Write(16); w.Write((short)1); w.Write((short)2);
-            w.Write(rate); w.Write(rate * 4); w.Write((short)4); w.Write((short)16);
-            w.Write(Encoding.ASCII.GetBytes("data")); w.Write(dataLen);
-            for (int i = 0; i < n; i++)
-            {
-                w.Write(i < left.Length ? left[i] : (short)0);
-                w.Write(i < right.Length ? right[i] : (short)0);
-            }
-        }
-    }
 }
 
 // ---------------------------------------------------------------------- audio devices (winmm)
