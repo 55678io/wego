@@ -1,0 +1,38 @@
+{
+  "name": "wego",
+  "productName": "Wego",
+  "version": "1.0.0",
+  "description": "Wego softphone for the support team: calls, live call sheet, team alerts and chat.",
+  "main": "main.js",
+  "author": "KDN",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --x64 --publish never",
+    "server": "node server/wego-server.js"
+  },
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "com.kdn.wego",
+    "productName": "Wego",
+    "artifactName": "Wego-Setup-${version}.${ext}",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "preload.js", "app/**/*", "build/icon.ico", "package.json"],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Wego"
+    }
+  }
+}

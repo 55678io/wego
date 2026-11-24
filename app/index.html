@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wego Dialer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+/* VOICE: a shipped business softphone, calm and exact, like a product a support team pays for
+   IDEA: a desk phone beside a call ledger
+   PICTURE: the live dialer and the call sheet are the page
+   COLOUR/TYPE: graphite rail, white work surface, one confident blue accent, green answer, red hang-up; Inter + JetBrains Mono for numbers
+   LAYOUT: sign-in = brand panel + form; app = icon rail, dialer column, sheet, detail drawer */
+:root{color-scheme:light dark;
+--bg:light-dark(#f3f4f6,#0f1115);--panel:light-dark(#ffffff,#171a20);--soft:light-dark(#f7f8fa,#1e222a);
+--ink:light-dark(#111318,#eceef2);--mute:light-dark(#6b7280,#9aa1ad);--line:light-dark(#e5e7eb,#2a2f39);
+--acc:#2563eb;--accs:light-dark(#e8efff,#1c2a4a);--go:#16a34a;--stop:#dc2626;--warn:#d97706;--rail:#15171c}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,sans-serif;overflow-x:clip;min-height:100vh;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);border-radius:10px;min-height:44px;padding:0 16px;background:var(--panel);font-weight:500}
+button:hover{background:var(--soft)}
+:focus-visible{outline:3px solid color-mix(in srgb,var(--acc) 55%,transparent);outline-offset:2px}
+input,textarea,select{width:100%;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+input:focus,textarea:focus,select:focus{border-color:var(--acc);outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 20%,transparent)}
+label{display:block;font-size:13px;font-weight:500;color:var(--mute);margin:14px 0 6px}
+.hide{display:none!important}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace}
+.primary{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+.primary:hover{background:#1d4ed8}
+.ghost{border-color:transparent;background:none;color:var(--mute)}
+.av{border-radius:50%;display:grid;place-items:center;font-weight:600;color:#fff;flex:none}
+
+/* ---------- Sign-in ---------- */
+.gate{min-height:100vh;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)}
+.brandside{background:var(--rail);color:#e9ebef;padding:clamp(28px,5vw,64px);display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.brandside svg.art{position:absolute;right:-60px;bottom:-40px;width:min(560px,90%);opacity:.95}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px;letter-spacing:-.01em}
+.mark{width:34px;height:34px;border-radius:9px;background:var(--acc);display:grid;place-items:center}
+.brandside h2{font-size:clamp(32px,3.6vw,48px);line-height:1.05;margin:0;max-width:12ch;text-wrap:balance;position:relative}
+.brandside p{color:#a3a9b5;max-width:36ch;position:relative}
+.formside{display:grid;place-items:center;padding:32px 20px;background:var(--panel)}
+.form{width:min(380px,100%)}
+.step{font-size:13px;color:var(--mute);font-weight:500}
+.form h1{font-size:32px;line-height:1.1;margin:6px 0 6px;letter-spacing:-.02em}
+.form .sub{color:var(--mute);margin:0 0 8px}
+.err{color:var(--stop);font-size:13px;min-height:20px;margin-top:8px}
+.form .primary{width:100%;margin-top:12px}
+.back{margin-top:14px;padding:0;min-height:36px;border:0;background:none;color:var(--mute);font-size:14px}
+.back:hover{background:none;color:var(--ink)}
+.plist{display:grid;gap:10px;margin-top:18px}
+.prof{display:flex;align-items:center;gap:14px;padding:14px 16px;min-height:72px;text-align:left;border-radius:14px}
+.prof:hover{border-color:var(--acc);background:var(--accs)}
+.prof .av{width:44px;height:44px;font-size:17px}
+.prof b{display:block;font-size:16px}.prof span{font-size:13px;color:var(--mute)}
+.prof .chev{margin-left:auto;color:var(--mute)}
+.who-chip{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--soft);border:1px solid var(--line);border-radius:12px;margin:16px 0 4px}
+.who-chip .av{width:32px;height:32px;font-size:14px}
+
+/* ---------- App shell ---------- */
+.shell{display:grid;grid-template-columns:64px minmax(0,1fr);min-height:100vh}
+.rail{background:var(--rail);display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 0}
+.rail .mark{margin-bottom:12px}
+.rail button{width:44px;height:44px;padding:0;border:0;background:none;color:#8b919d;border-radius:10px;display:grid;place-items:center}
+.rail button.on,.rail button:hover{background:#262a32;color:#fff}
+.rail .sp{flex:1}
+.top{display:flex;align-items:center;gap:14px;padding:12px 24px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.top h1{font-size:18px;margin:0;letter-spacing:-.01em}
+.top .grow{flex:1}
+.statussel{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:0 10px;min-height:40px}
+.statussel select{border:0;padding:6px 0;background:none;width:auto;font-size:14px;box-shadow:none}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--go);flex:none}
+.me{display:flex;align-items:center;gap:10px;font-weight:600}
+.me .av{width:34px;height:34px;font-size:14px}
+.me small{display:block;font-weight:400;color:var(--mute);font-size:12px;line-height:1.2}
+.work{display:grid;grid-template-columns:340px minmax(0,1fr);gap:20px;padding:20px 24px;max-width:1400px}
+
+/* dialer */
+.phone{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;align-self:start;position:sticky;top:16px}
+.screen{border-radius:12px;padding:16px;background:var(--soft);border:1px solid var(--line);min-height:128px;display:flex;flex-direction:column;gap:2px}
+.screen .st{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--mute)}
+.screen .st i{width:8px;height:8px;border-radius:50%;background:var(--mute)}
+.screen.live .st{color:var(--go)}.screen.live .st i{background:var(--go)}
+.screen.ring .st{color:var(--acc)}.screen.ring .st i{background:var(--acc);animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.2}}
+.screen .num{font:500 24px/1.3 "JetBrains Mono",monospace;margin-top:6px;overflow-wrap:anywhere;min-height:31px;letter-spacing:-.02em}
+.screen .cid{font-size:14px;color:var(--mute);min-height:21px}
+.screen .tm{font:500 14px "JetBrains Mono",monospace;color:var(--ink);margin-top:auto}
+.numrow{display:flex;gap:6px;margin:12px 0}
+.numrow input{font-family:"JetBrains Mono",monospace;font-size:17px}
+.numrow button{flex:none;width:44px;padding:0}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pad button{min-height:52px;font-size:20px;font-weight:500;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
+.pad small{font-size:10px;color:var(--mute);letter-spacing:.08em;min-height:12px}
+.callbar{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.go{background:var(--go);border-color:var(--go);color:#fff;font-weight:600}.go:hover{background:#15803d}
+.stop{background:var(--stop);border-color:var(--stop);color:#fff;font-weight:600}.stop:hover{background:#b91c1c}
+.ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.ctl button{font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:56px}
+.ctl button.on{background:var(--accs);border-color:var(--acc);color:var(--acc)}
+.ctl button:disabled{opacity:.45;cursor:not-allowed}
+.demo{width:100%;margin-top:14px;border-style:dashed;color:var(--mute);font-size:13px}
+
+/* sheet */
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:16px;position:relative;overflow:hidden;min-height:560px;display:flex;flex-direction:column}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-bottom:1px solid var(--line)}
+.kpi{padding:14px 18px;border-right:1px solid var(--line)}.kpi:last-child{border-right:0}
+.kpi span{font-size:13px;color:var(--mute)}
+.kpi b{display:block;font-size:24px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.toolbar{display:flex;gap:10px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.toolbar h2{font-size:16px;margin:0 8px 0 0}
+.tabs{display:flex;gap:4px;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:3px;flex-wrap:wrap}
+.tabs button{min-height:34px;border:0;background:none;padding:0 12px;font-size:13px;color:var(--mute);border-radius:7px}
+.tabs button.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px #0002}
+.search{flex:1;min-width:160px;max-width:260px;margin-left:auto}
+.search input{min-height:38px;padding:7px 12px;font-size:14px}
+.toolbar .sm{min-height:38px;font-size:13px}
+.scroll{overflow-x:auto;flex:1}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:12px;color:var(--mute);font-weight:600;padding:10px 18px;background:var(--soft);border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:12px 18px;border-bottom:1px solid var(--line);white-space:nowrap}
+tbody tr{cursor:pointer}tbody tr:hover{background:var(--soft)}
+tbody tr.sel{background:var(--accs)}
+tr.new{animation:flash 1.8s ease-out}
+@keyframes flash{from{background:color-mix(in srgb,var(--acc) 22%,transparent)}}
+.dirico{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:7px;vertical-align:middle}
+.d-ans{background:color-mix(in srgb,var(--go) 14%,transparent);color:var(--go)}
+.d-miss{background:color-mix(in srgb,var(--stop) 14%,transparent);color:var(--stop)}
+.d-out{background:var(--accs);color:var(--acc)}
+.numcell{font-family:"JetBrains Mono",monospace;font-weight:500}
+.badge{font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;white-space:nowrap}
+.r{text-align:right;font-variant-numeric:tabular-nums}
+.muted{color:var(--mute)}
+.empty{padding:64px 20px;text-align:center;color:var(--mute)}
+.empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
+
+/* drawer */
+.drawer{position:absolute;inset:0 0 0 auto;width:min(440px,100%);background:var(--panel);border-left:1px solid var(--line);box-shadow:-24px 0 48px -32px #0008;overflow:auto;transform:translateX(105%);transition:transform .22s ease;z-index:3}
+.drawer.open{transform:none}
+.dhead{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);z-index:1}
+.dhead .av{width:42px;height:42px;font-size:16px;background:#475569}
+.dhead h3{margin:0;font-size:16px}
+.dhead .x{margin-left:auto;width:40px;min-height:40px;padding:0}
+.dbody{padding:4px 18px 22px}
+.sec{font-size:12px;font-weight:600;color:var(--mute);margin:20px 0 8px}
+.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.facts div{background:var(--panel);padding:10px 12px}
+.facts span{display:block;font-size:12px;color:var(--mute)}
+.facts b{font-size:14px;font-weight:600}
+.facts .wide{grid-column:1/-1}
+.rec{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--soft)}
+.rec audio{width:100%;height:40px}
+.rec p{margin:6px 0 0;font-size:12px;color:var(--mute)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.dfoot{display:flex;gap:10px;margin-top:18px}
+.dfoot .primary{flex:1}
+
+/* incoming toast */
+.incoming{position:fixed;right:20px;bottom:20px;width:min(340px,calc(100vw - 40px));background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 60px -20px #0009;padding:16px;z-index:9}
+.incoming .lbl{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--acc)}
+.incoming .lbl i{width:8px;height:8px;border-radius:50%;background:var(--acc);animation:blink 1s infinite}
+.incoming .num{font:500 22px "JetBrains Mono",monospace;margin:8px 0 0}
+.incoming .cid{color:var(--mute);font-size:14px;margin-bottom:14px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--rail);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;z-index:10}
+.copied{font-size:12px;color:var(--go)}
+
+/* connection pill + settings modal */
+.conn{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;border:1px solid var(--line);border-radius:99px;padding:0 12px;min-height:36px;background:var(--panel)}
+.conn i{width:8px;height:8px;border-radius:50%;background:var(--mute)}
+.conn.ok{color:var(--go)}.conn.ok i{background:var(--go)}
+.conn.busy{color:var(--warn)}.conn.busy i{background:var(--warn);animation:blink 1s infinite}
+.conn.bad{color:var(--stop)}.conn.bad i{background:var(--stop)}
+.conn.idle{color:var(--mute)}
+.modal{position:fixed;inset:0;background:#0009;display:grid;place-items:center;padding:16px;z-index:20}
+.mbox{background:var(--panel);border:1px solid var(--line);border-radius:18px;width:min(620px,100%);max-height:calc(100vh - 32px);overflow:auto;box-shadow:0 30px 80px -30px #000c}
+.mhead{display:flex;align-items:center;gap:12px;padding:18px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);z-index:1}
+.mhead h2{margin:0;font-size:18px}.mhead .x{margin-left:auto;width:40px;min-height:40px;padding:0}
+.mbody{padding:6px 22px 22px}
+.hint{font-size:13px;color:var(--mute);margin:6px 0 0}
+.callout{border:1px solid var(--line);background:var(--soft);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--mute);margin-top:16px}
+.callout b{color:var(--ink)}
+.mfoot{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.mfoot .primary{flex:1}
+.msg{font-size:13px;margin-top:12px;min-height:20px}
+.msg.ok{color:var(--go)}.msg.bad{color:var(--stop)}
+.pwrow{position:relative}.pwrow input{padding-right:70px}
+.pwrow button{position:absolute;right:4px;top:4px;min-height:36px;font-size:13px;border:0;background:none;color:var(--acc)}
+details.adv summary{cursor:pointer;font-size:14px;font-weight:600;margin-top:18px}
+
+/* teammates */
+.peers{display:flex;gap:8px;flex-wrap:wrap}
+.peer{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:99px;padding:3px 12px 3px 3px;font-size:13px;background:var(--panel);min-height:36px}
+.peer .av{width:28px;height:28px;font-size:12px;position:relative}
+.peer .av::after{content:"";position:absolute;right:-2px;bottom:-2px;width:10px;height:10px;border-radius:50%;border:2px solid var(--panel);background:var(--pc,#9aa1ad)}
+.peer b{font-weight:600}.peer span{color:var(--mute)}
+.peer.oncall{border-color:color-mix(in srgb,var(--stop) 45%,var(--line));background:color-mix(in srgb,var(--stop) 7%,var(--panel))}
+.peer.oncall span{color:var(--stop);font-weight:600}
+
+/* sticky team notifications */
+.notifs{position:fixed;top:76px;right:20px;width:min(360px,calc(100vw - 40px));display:flex;flex-direction:column;gap:10px;z-index:12;pointer-events:none}
+.nt{pointer-events:auto;display:flex;gap:12px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--go);border-radius:14px;padding:14px 10px 14px 14px;box-shadow:0 18px 40px -20px #0008;animation:slidein .25s ease}
+.nt.end{border-left-color:var(--acc)}.nt.miss{border-left-color:var(--stop)}
+.nt .av{width:36px;height:36px;font-size:14px}
+.nt b{display:block;font-size:14px}.nt p{margin:2px 0 0;font-size:13px;color:var(--mute)}
+.nt .mono{color:var(--ink)}
+.nt .x{margin-left:auto;width:36px;min-height:36px;padding:0;flex:none;border-color:var(--line)}
+@keyframes slidein{from{opacity:0;transform:translateX(20px)}}
+.incoming{top:20px;bottom:auto;left:50%;right:auto;transform:translateX(-50%)}
+
+/* team chat */
+.chat{position:fixed;right:20px;bottom:20px;width:min(360px,calc(100vw - 40px));z-index:11;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 60px -24px #0009;overflow:hidden}
+.chat.min .cbody{display:none}
+.chead{display:flex;align-items:center;gap:10px;padding:0 8px 0 14px;min-height:52px;border:0;border-radius:0;background:var(--rail);color:#fff;width:100%;text-align:left}
+.chead:hover{background:#22252c}
+.chead b{font-size:14px}.chead small{color:#a3a9b5;font-weight:400;font-size:12px}
+.chead .badge{background:var(--stop);color:#fff;margin-left:auto}
+.chead .car{margin-left:auto;color:#a3a9b5}.chead .badge+.car{margin-left:8px}
+.cbody{display:flex;flex-direction:column;height:360px}
+.clist{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--soft)}
+.cm{max-width:82%;align-self:flex-start}
+.cm .bub{background:var(--panel);border:1px solid var(--line);padding:8px 12px;border-radius:14px 14px 14px 4px;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere}
+.cm.me{align-self:flex-end}.cm.me .bub{background:var(--acc);border-color:var(--acc);color:#fff;border-radius:14px 14px 4px 14px}
+.cm .who{white-space:nowrap;font-size:11px;color:var(--mute);margin:0 4px 2px}.cm.me .who{text-align:right}
+.csys{align-self:center;font-size:12px;color:var(--mute);background:var(--panel);border:1px solid var(--line);border-radius:99px;padding:3px 10px}
+.cform{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line)}
+.cform input{min-height:42px;padding:8px 12px;font-size:15px}
+.cform button{flex:none}
+.cempty{margin:auto;text-align:center;color:var(--mute);font-size:13px;padding:20px}
+.work{padding-bottom:90px}
+
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media(max-width:1100px){.work{grid-template-columns:300px minmax(0,1fr)}}
+@media(max-width:900px){.gate{grid-template-columns:minmax(0,1fr)}.brandside{min-height:260px}.brandside svg.art{width:300px}
+  .work{grid-template-columns:minmax(0,1fr);padding:16px}.phone{position:static}.drawer{position:fixed;z-index:8}}
+@media(max-width:600px){.shell{grid-template-columns:minmax(0,1fr)}.rail{display:none}.top{padding:12px 16px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi:nth-child(2){border-right:0}.kpi:nth-child(-n+2){border-bottom:1px solid var(--line)}
+  .g2{grid-template-columns:1fr}.search{max-width:none}th,td{padding:10px 12px}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-phone" viewBox="0 0 24 24"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z"/></symbol>
+  <symbol id="i-in" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M17 7 7 17M7 9v8h8"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M7 17 17 7M9 7h8v8"/></symbol>
+  <symbol id="i-miss" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M4 7l7 7 5-5M16 9h4v4"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></symbol>
+  <symbol id="i-out2" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></g></symbol>
+  <symbol id="i-back"viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M20 12H9m4-5-5 5 5 5"/></symbol>
+</svg>
+
+<!-- ============ SIGN-IN ============ -->
+<section class="gate" id="vGate">
+  <div class="brandside">
+    <div class="logo"><div class="mark"><svg width="18" height="18" style="color:#fff"><use href="#i-phone"/></svg></div>Wego</div>
+    <div>
+      <h2>Every call, logged the moment it ends.</h2>
+      <p>The Wego softphone for your support team: answer calls, keep a live call sheet, and save customer details in one place.</p>
+    </div>
+    <svg class="art" viewBox="0 0 560 360" aria-hidden="true">
+      <defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a2f39"/><stop offset="1" stop-color="#1c1f26"/></linearGradient></defs>
+      <rect x="40" y="40" width="500" height="300" rx="22" fill="url(#g1)" stroke="#333a46"/>
+      <rect x="64" y="70" width="140" height="240" rx="14" fill="#15171c" stroke="#2f3541"/>
+      <rect x="80" y="88" width="108" height="46" rx="8" fill="#1f2430"/>
+      <rect x="88" y="98" width="70" height="8" rx="4" fill="#2563eb"/><rect x="88" y="114" width="46" height="6" rx="3" fill="#3a4150"/>
+      <g fill="#252a34"><rect x="80" y="148" width="32" height="26" rx="6"/><rect x="118" y="148" width="32" height="26" rx="6"/><rect x="156" y="148" width="32" height="26" rx="6"/><rect x="80" y="180" width="32" height="26" rx="6"/><rect x="118" y="180" width="32" height="26" rx="6"/><rect x="156" y="180" width="32" height="26" rx="6"/><rect x="80" y="212" width="32" height="26" rx="6"/><rect x="118" y="212" width="32" height="26" rx="6"/><rect x="156" y="212" width="32" height="26" rx="6"/></g>
+      <rect x="80" y="252" width="51" height="34" rx="8" fill="#16a34a"/><rect x="137" y="252" width="51" height="34" rx="8" fill="#dc2626"/>
+      <g transform="translate(224 70)">
+        <rect width="290" height="240" rx="14" fill="#15171c" stroke="#2f3541"/>
+        <rect x="0" y="0" width="290" height="34" rx="14" fill="#1b1f27"/>
+        <g font-family="JetBrains Mono,monospace" font-size="11" fill="#8b919d">
+          <text x="16" y="22">NUMBER</text><text x="150" y="22">STATUS</text><text x="236" y="22">TIME</text>
+        </g>
+        <g font-family="JetBrains Mono,monospace" font-size="12" fill="#d7dbe2">
+          <text x="16" y="64">(415) 555-0132</text><text x="16" y="102">(312) 555-0177</text><text x="16" y="140">(206) 555-0119</text><text x="16" y="178">(646) 555-0164</text><text x="16" y="216">(702) 555-0108</text>
+          <text x="236" y="64">04:12</text><text x="236" y="102">00:00</text><text x="236" y="140">11:48</text><text x="236" y="178">02:31</text><text x="236" y="216">00:00</text>
+        </g>
+        <g><rect x="150" y="52" width="64" height="18" rx="9" fill="#16a34a33"/><rect x="150" y="90" width="64" height="18" rx="9" fill="#dc262633"/><rect x="150" y="128" width="64" height="18" rx="9" fill="#16a34a33"/><rect x="150" y="166" width="64" height="18" rx="9" fill="#2563eb33"/><rect x="150" y="204" width="64" height="18" rx="9" fill="#dc262633"/></g>
+        <g stroke="#262b35"><path d="M0 80h290M0 118h290M0 156h290M0 194h290"/></g>
+      </g>
+    </svg>
+  </div>
+
+  <div class="formside">
+    <!-- step 1: access code -->
+    <form class="form" id="fCode">
+      <div class="step">Step 1 of 3</div>
+      <h1>Sign in to Wego</h1>
+      <p class="sub">Enter your team access code to continue.</p>
+      <label for="code">Access code</label>
+      <input id="code" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="err" id="eCode" role="alert"></div>
+      <button class="primary" type="submit">Continue</button>
+    </form>
+
+    <!-- step 2: choose profile -->
+    <div class="form hide" id="fProf">
+      <div class="step">Step 2 of 3</div>
+      <h1>Choose your profile</h1>
+      <p class="sub">Select the agent profile you are signing in as.</p>
+      <div class="plist" id="plist"></div>
+      <button class="back" id="toCode">← Back</button>
+    </div>
+
+    <!-- step 3: password -->
+    <form class="form hide" id="fPass">
+      <div class="step">Step 3 of 3</div>
+      <h1>Enter your password</h1>
+      <div class="who-chip"><div class="av" id="pAv"></div><b id="pName"></b></div>
+      <label for="pass">Password</label>
+      <input id="pass" type="password" autocomplete="off">
+      <div class="err" id="ePass" role="alert"></div>
+      <button class="primary" type="submit">Sign in</button>
+      <button class="back" type="button" id="toProf">← Choose a different profile</button>
+    </form>
+  </div>
+</section>
+
+<!-- ============ APP ============ -->
+<section class="shell hide" id="vApp">
+  <nav class="rail" aria-label="Main">
+    <div class="mark"><svg width="18" height="18" style="color:#fff"><use href="#i-phone"/></svg></div>
+    <button class="on" title="Calls" aria-label="Calls"><svg width="20" height="20"><use href="#i-phone"/></svg></button>
+    <button title="Call sheet" aria-label="Call sheet" id="railSheet"><svg width="20" height="20"><use href="#i-list"/></svg></button>
+    <button title="Phone system settings" aria-label="Phone system settings" id="railSet"><svg width="20" height="20"><use href="#i-gear"/></svg></button>
+    <div class="sp"></div>
+    <button title="Sign out" aria-label="Sign out" id="railOut"><svg width="20" height="20"><use href="#i-out2"/></svg></button>
+  </nav>
+
+  <div>
+    <header class="top">
+      <h1>Calls</h1>
+      <div class="peers" id="peers" aria-label="Teammates"></div>
+      <div class="grow"></div>
+      <button class="conn idle" id="conn" title="Phone system settings"><i></i><span id="connTx">Not connected · Demo mode</span></button>
+      <div class="statussel"><span class="dot" id="sDot"></span>
+        <select id="avail" aria-label="Availability"><option>Available</option><option>Busy</option><option>Away</option></select>
+      </div>
+      <div class="me"><div class="av" id="mAv"></div><div><span id="mName"></span><small>Support agent</small></div></div>
+      <button id="signout">Sign out</button>
+    </header>
+
+    <main class="work">
+      <!-- Dialer -->
+      <section class="phone" aria-label="Dialer">
+        <div class="screen" id="screen">
+          <div class="st"><i></i><span id="sSt">Ready</span></div>
+          <div class="num" id="sNum"></div>
+          <div class="cid" id="sCid"></div>
+          <div class="tm" id="sTm"></div>
+        </div>
+        <div class="numrow">
+          <input id="dialIn" class="mono" placeholder="Enter a number" inputmode="tel" autocomplete="off" aria-label="Number to dial">
+          <button id="bDel" aria-label="Delete last digit"><svg width="18" height="18"><use href="#i-back"/></svg></button>
+        </div>
+        <div class="pad" id="pad"></div>
+        <div class="callbar">
+          <button class="go" id="bCall">Call</button>
+          <button class="stop" id="bHang">Hang up</button>
+        </div>
+        <div class="ctl">
+          <button id="bMute" disabled>Mute</button>
+          <button id="bHold" disabled>Hold</button>
+          <button id="bRec" disabled>Recording</button>
+        </div>
+        <button class="demo" id="bDemo">Simulate incoming call (demo)</button>
+      </section>
+
+      <!-- Sheet -->
+      <section class="sheet" id="sheet" aria-label="Call sheet">
+        <div class="kpis" id="kpis"></div>
+        <div class="toolbar">
+          <h2>Call sheet</h2>
+          <div class="tabs" id="tabs">
+            <button class="on" data-f="all">All</button><button data-f="Answered">Answered</button><button data-f="Missed">Missed</button><button data-f="Outgoing">Outgoing</button>
+          </div>
+          <div class="search"><input id="q" placeholder="Search number, name, email" aria-label="Search calls"></div>
+          <button class="sm" id="bCopy">Copy as CSV</button>
+        </div>
+        <div class="scroll">
+          <table>
+            <thead><tr><th></th><th>Number</th><th>Name</th><th>Status</th><th>Date &amp; time</th><th class="r">Duration</th><th>ZIP</th><th>Email</th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+          <div class="empty" id="empty"><b>No calls yet</b>Every answered, missed and outgoing call will appear here as soon as it ends.</div>
+        </div>
+
+        <aside class="drawer" id="drawer" aria-label="Call details">
+          <div class="dhead">
+            <div class="av" id="dAv"></div>
+            <div><h3 id="dTitle"></h3><div class="muted mono" id="dSub" style="font-size:13px"></div></div>
+            <button class="x" id="dClose" aria-label="Close">✕</button>
+          </div>
+          <div class="dbody">
+            <div class="sec">Call summary</div>
+            <div class="facts" id="facts"></div>
+            <div class="sec">Recording</div>
+            <div class="rec" id="rec"></div>
+            <div class="sec">Customer details</div>
+            <form id="fDet">
+              <div class="g2">
+                <div><label for="dName">Full name</label><input id="dName" autocomplete="off"></div>
+                <div><label for="dNum">Phone number</label><input id="dNum" class="mono" autocomplete="off"></div>
+                <div><label for="dZip">ZIP code</label><input id="dZip" inputmode="numeric" maxlength="10" autocomplete="off"></div>
+                <div><label for="dEmail">Email address</label><input id="dEmail" type="email" autocomplete="off"></div>
+              </div>
+              <label for="dNotes">Notes</label>
+              <textarea id="dNotes" rows="4" placeholder="Issue, resolution, follow-up…"></textarea>
+              <div class="err" id="eDet"></div>
+              <div class="dfoot"><button type="button" id="dCancel">Cancel</button><button class="primary" type="submit">Save details</button></div>
+            </form>
+          </div>
+        </aside>
+      </section>
+    </main>
+  </div>
+</section>
+
+<div class="incoming hide" id="incoming" role="alertdialog" aria-label="Incoming call">
+  <div class="lbl"><i></i>Incoming call</div>
+  <div class="num" id="iNum"></div>
+  <div class="cid" id="iCid"></div>
+  <div class="callbar"><button class="stop" id="iDec">Decline</button><button class="go" id="iAns">Answer</button></div>
+</div>
+<div class="toast hide" id="toast" role="status"></div>
+<audio id="remote" autoplay hidden></audio>
+<div class="notifs" id="notifs" aria-live="polite"></div>
+
+<section class="chat min hide" id="chat" aria-label="Team chat">
+  <button class="chead" id="cHead" aria-expanded="false">
+    <div><b>Team chat</b><br><small id="cSub">Messages to your team</small></div>
+    <span class="badge hide" id="cBadge">0</span><span class="car" id="cCar">▲</span>
+  </button>
+  <div class="cbody">
+    <div class="clist" id="cList"></div>
+    <form class="cform" id="cForm">
+      <input id="cIn" placeholder="Type a message…" maxlength="1000" autocomplete="off" aria-label="Message">
+      <button class="primary" type="submit">Send</button>
+    </form>
+  </div>
+</section>
+
+<div class="modal hide" id="mSet" role="dialog" aria-modal="true" aria-labelledby="mSetT">
+  <form class="mbox" id="fSip" autocomplete="off">
+    <div class="mhead"><h2 id="mSetT">Phone system (SIP account)</h2><button type="button" class="x" id="mClose" aria-label="Close">✕</button></div>
+    <div class="mbody">
+      <p class="hint">Enter the SIP account details from your phone system (the same ones used in MicroSIP). These are saved for <b id="mWho"></b> on this computer only.</p>
+      <div class="g2">
+        <div><label for="sDisp">Display name</label><input id="sDisp" placeholder="James"></div>
+        <div><label for="sUser">SIP username / extension</label><input id="sUser" class="mono" placeholder="1001"></div>
+        <div><label for="sDomain">SIP domain / server</label><input id="sDomain" class="mono" placeholder="gc24.yoopbx.com"></div>
+        <div><label for="sAuth">Auth ID <span class="muted">(optional)</span></label><input id="sAuth" class="mono" placeholder="Same as username"></div>
+      </div>
+      <label for="sPass">SIP password</label>
+      <div class="pwrow"><input id="sPass" type="password"><button type="button" id="sEye">Show</button></div>
+      <label for="sWss">WebSocket (WSS) address</label>
+      <input id="sWss" class="mono" placeholder="wss://gc24.yoopbx.com:8089/ws">
+      <p class="hint">Ask your phone provider for the "WebRTC" or "WSS" address. Common ports are 443, 7443, 8089 or 8443.</p>
+      <details class="adv">
+        <summary>Advanced</summary>
+        <div class="g2">
+          <div><label for="sStun">STUN server</label><input id="sStun" class="mono" placeholder="stun:stun.l.google.com:19302"></div>
+          <div><label for="sExp">Registration expiry (seconds)</label><input id="sExp" type="number" min="60" max="3600" placeholder="600"></div>
+        </div>
+        <label><input type="checkbox" id="sAuto" style="width:auto;margin-right:8px;vertical-align:middle">Connect automatically when I sign in</label>
+        <label><input type="checkbox" id="sRec" style="width:auto;margin-right:8px;vertical-align:middle" checked>Record every connected call</label>
+      </details>
+      <label for="sTeam">Team server <span class="muted">(for live status, call alerts and team chat)</span></label>
+      <input id="sTeam" class="mono" placeholder="ws://192.168.1.20:8787">
+      <p class="hint">The address shown when you start the Wego Team Server on your Mac mini. Leave empty to share only between tabs on this computer. This setting is shared by all profiles on this computer.</p>
+      <div class="callout"><b>How Wego connects:</b> Wego registers to your phone system over a secure WebSocket (WebRTC), so inbound calls ring here instead of MicroSIP. Your provider must have WebRTC enabled on this extension. If they only offer UDP/TCP (port 5060), Wego will need its desktop version.</div>
+      <div class="msg" id="sMsg" role="status"></div>
+      <div class="mfoot">
+        <button type="button" id="sDisc">Disconnect</button>
+        <button type="button" id="sSave">Save</button>
+        <button class="primary" type="submit">Save &amp; connect</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+{
+const ACCESS_CODE='6macs0';
+const PROFILES=[
+  {id:'eric',name:'Eric',pass:'chatpataladka',color:'#2563eb'},
+  {id:'james',name:'James',pass:'vishal007',color:'#0f766e'}
+];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+let user=null,pending=null,calls=[],cur=null,tick=null,ringT=null,openId=null,filter='all',lastNew=null;
+let sip={},ua=null,registered=false;
+const JSSIP_URL='https://cdn.jsdelivr.net/npm/jssip@3.10.1/dist/jssip.min.js';
+
+/* ---------- sign-in steps ---------- */
+function step(id){for(const f of['fCode','fProf','fPass'])$(f).classList.toggle('hide',f!==id);
+  const el=$(id).querySelector('input');if(el)setTimeout(()=>el.focus(),30)}
+$('fCode').addEventListener('submit',e=>{e.preventDefault();
+  if($('code').value.trim()===ACCESS_CODE){$('eCode').textContent='';$('code').value='';step('fProf')}
+  else $('eCode').textContent='That access code is incorrect. Please try again.'});
+$('plist').innerHTML=PROFILES.map(p=>`<button class="prof" data-id="${p.id}"><div class="av" style="background:${p.color}">${p.name[0]}</div><div><b>${p.name}</b><span>Support agent</span></div><span class="chev">›</span></button>`).join('');
+$('plist').addEventListener('click',e=>{const b=e.target.closest('.prof');if(!b)return;
+  pending=PROFILES.find(p=>p.id===b.dataset.id);
+  $('pAv').textContent=pending.name[0];$('pAv').style.background=pending.color;$('pName').textContent=pending.name;
+  $('pass').value='';$('ePass').textContent='';step('fPass')});
+$('toCode').onclick=()=>step('fCode');
+$('toProf').onclick=()=>step('fProf');
+$('fPass').addEventListener('submit',e=>{e.preventDefault();
+  if($('pass').value===pending.pass)signIn(pending);else{$('ePass').textContent='Incorrect password for '+pending.name+'.';$('pass').select()}});
+
+function signIn(p){user=p;
+  $('mAv').textContent=p.name[0];$('mAv').style.background=p.color;$('mName').textContent=p.name;
+  calls=store.get('wego-calls-'+p.id,[]);render();idle();
+  $('vGate').classList.add('hide');$('vApp').classList.remove('hide');document.title='Wego · '+p.name;
+  sip=store.get('wego-sip-'+p.id,{});setConn('idle','Not connected · Demo mode');
+  if(sip.auto&&sip.wss)sipConnect();
+  teamStart()}
+function signOut(){if(cur){if(cur.session)try{cur.session.terminate()}catch{}finish('Agent signed out')}sipDisconnect();closeDrawer();teamStop();user=null;
+  $('vApp').classList.add('hide');$('vGate').classList.remove('hide');step('fCode');document.title='Wego Dialer'}
+$('signout').onclick=signOut;$('railOut').onclick=signOut;
+$('railSheet').onclick=()=>$('sheet').scrollIntoView({behavior:'smooth'});
+$('avail').onchange=e=>{$('sDot').style.background={Available:'var(--go)',Busy:'var(--stop)',Away:'var(--warn)'}[e.target.value];sendPresence()};
+
+/* ---------- dialer ---------- */
+const KEYS=[['1',''],['2','ABC'],['3','DEF'],['4','GHI'],['5','JKL'],['6','MNO'],['7','PQRS'],['8','TUV'],['9','WXYZ'],['*',''],['0','+'],['#','']];
+$('pad').innerHTML=KEYS.map(([k,s])=>`<button type="button" data-k="${k}">${k}<small>${s}</small></button>`).join('');
+$('pad').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||cur)return;$('dialIn').value+=b.dataset.k;$('dialIn').focus()});
+$('bDel').onclick=()=>{if(!cur)$('dialIn').value=$('dialIn').value.slice(0,-1)};
+$('dialIn').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();dialOut()}});
+
+function fmt(n){const d=String(n).replace(/\D/g,'');const x=d.length===11&&d[0]==='1'?d.slice(1):d;
+  return x.length===10?`+1 (${x.slice(0,3)}) ${x.slice(3,6)}-${x.slice(6)}`:String(n).trim()}
+const mmss=s=>`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+function setCtl(on){for(const b of['bMute','bHold','bRec']){$(b).disabled=!on;$(b).classList.remove('on')}if(on)$('bRec').classList.add('on')}
+function idle(){$('screen').className='screen';$('sSt').textContent='Ready';$('sNum').textContent='';$('sCid').textContent='Enter a number or wait for a call';$('sTm').textContent='';setCtl(false)}
+
+function connect(){cur.answeredAt=Date.now();$('screen').className='screen live';
+  teamSend({type:'answered',number:cur.number,name:cur.name||'',dir:cur.dir});sendPresence();
+  $('sSt').textContent=cur.dir==='out'?'Outbound call · Connected':'Inbound call · Connected';
+  $('sNum').textContent=cur.number;$('sCid').textContent=cur.name||'Unknown caller';setCtl(true);
+  tick=setInterval(()=>{$('sTm').textContent=mmss(Math.round((Date.now()-cur.answeredAt)/1000))+(cur.hold?'  ·  On hold':'')+(cur.mute?'  ·  Muted':'')},500)}
+
+function dialOut(){const v=$('dialIn').value.trim();if(cur||!v){if(!v)toast('Enter a number to call.');return}
+  $('dialIn').value='';
+  if(registered){
+    const target=/^[\w.+-]+@/.test(v)?'sip:'+v:'sip:'+v.replace(/[^\d*#+]/g,'')+'@'+sip.domain;
+    cur={id:Date.now(),dir:'out',number:fmt(v),name:'',start:Date.now()};ringUI('Calling…');
+    try{const s=ua.call(target,mediaOpts());bindSession(s)}catch(err){toast('Call failed: '+err.message);finish('Call could not be placed')}
+    return}
+  cur={id:Date.now(),demo:true,dir:'out',number:fmt(v),name:'',start:Date.now()};ringUI('Calling… (demo)');
+  ringT=setTimeout(()=>{if(cur&&!cur.answeredAt)connect()},2000)}
+function ringUI(t){$('screen').className='screen ring';$('sSt').textContent=t;$('sNum').textContent=cur.number;$('sCid').textContent=cur.name||'';$('sTm').textContent=''}
+$('bCall').onclick=dialOut;
+$('bHang').onclick=()=>{if(!cur){$('dialIn').value='';return}
+  if(cur.session){cur.hungByAgent=true;try{cur.session.terminate()}catch{finish('Agent ended the call')}return}
+  finish(cur.answeredAt?'Agent ended the call':'Cancelled by agent before answer')};
+$('bMute').onclick=()=>{if(!cur?.answeredAt)return;cur.mute=!cur.mute;
+  if(cur.session)try{cur.mute?cur.session.mute({audio:true}):cur.session.unmute({audio:true})}catch{}
+  $('bMute').classList.toggle('on',cur.mute);$('bMute').textContent=cur.mute?'Unmute':'Mute'};
+$('bHold').onclick=()=>{if(!cur?.answeredAt)return;cur.hold=!cur.hold;
+  if(cur.session)try{cur.hold?cur.session.hold():cur.session.unhold()}catch{}
+  $('bHold').classList.toggle('on',cur.hold);$('bHold').textContent=cur.hold?'Resume':'Hold'};
+$('bRec').onclick=()=>{if(!cur?.answeredAt)return;cur.norec=!cur.norec;$('bRec').classList.toggle('on',!cur.norec);
+  if(cur.norec&&cur.recorder?.state==='recording')cur.recorder.pause();else if(!cur.norec&&cur.recorder?.state==='paused')cur.recorder.resume()};
+
+/* demo inbound */
+const CALLERS=['Linda Carter','Robert Hayes','Maria Lopez','Daniel Brooks','Susan Miller','Wireless Caller',''];
+$('bDemo').onclick=()=>{if(cur){toast('Finish the current call first.');return}
+  if($('avail').value!=='Available'){toast('Set your status to Available to receive calls.');return}
+  const area=[212,213,305,312,415,469,512,602,646,702,713,206][Math.floor(Math.random()*12)];
+  const n=`1${area}555${String(Math.floor(Math.random()*1e4)).padStart(4,'0')}`;
+  cur={id:Date.now(),demo:true,dir:'in',number:fmt(n),name:CALLERS[Math.floor(Math.random()*CALLERS.length)],start:Date.now()};
+  showIncoming();
+  ringT=setTimeout(()=>{if(cur&&!cur.answeredAt)finish('No answer (ring timeout)')},15000)};
+function showIncoming(){$('iNum').textContent=cur.number;$('iCid').textContent=(cur.name||'Unknown caller')+(cur.demo?' · demo':'');$('incoming').classList.remove('hide');
+  ringUI('Incoming call…');$('sCid').textContent=cur.name||'Unknown caller';ringtone(true);desk('Incoming call · '+cur.number,cur.name||'Unknown caller',true)}
+$('iAns').onclick=()=>{if(!cur)return;clearTimeout(ringT);ringtone(false);$('incoming').classList.add('hide');
+  if(cur.session){try{cur.session.answer(mediaOpts())}catch(err){toast('Could not answer: '+err.message)}}else connect()};
+$('iDec').onclick=()=>{if(!cur)return;ringtone(false);
+  if(cur.session){cur.declined=true;try{cur.session.terminate({status_code:486,reason_phrase:'Busy Here'})}catch{finish('Declined by agent')}}else finish('Declined by agent')};
+
+function finish(reason){clearTimeout(ringT);clearInterval(tick);ringtone(false);$('incoming').classList.add('hide');
+  const c=cur;cur=null;if(!c)return;
+  const dur=c.answeredAt?Math.max(1,Math.round((Date.now()-c.answeredAt)/1000)):0;
+  if(c.demo&&c.answeredAt&&c.dir==='in'&&reason==='Agent ended the call'&&Math.random()<.35)reason='Customer ended the call';
+  const status=c.dir==='out'?'Outgoing':(c.answeredAt?'Answered':'Missed');
+  if(c.recorder&&c.recorder.state!=='inactive')try{c.recorder.stop()}catch{}
+  if(c.mixCtx)setTimeout(()=>c.mixCtx.close().catch(()=>{}),500);
+  const rec={id:c.id||Date.now(),demo:!!c.demo,number:c.number,name:c.name,status,connected:!!c.answeredAt,start:c.start,dur,reason,agent:user.name,zip:'',email:'',notes:'',rec:!!c.answeredAt&&!c.norec};
+  calls.unshift(rec);lastNew=rec.id;save();idle();render();
+  if(c.answeredAt)teamSend({type:'ended',number:c.number,name:c.name||'',dur,dir:c.dir});
+  sendPresence();
+  toast(status==='Missed'?'Missed call from '+c.number:'Call logged · '+mmss(dur))}
+function save(){store.set('wego-calls-'+user.id,calls)}
+
+/* ---------- sheet ---------- */
+$('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;filter=b.dataset.f;
+  for(const x of $('tabs').children)x.classList.toggle('on',x===b);render()});
+$('q').addEventListener('input',render);
+function visible(){const q=$('q').value.trim().toLowerCase(),qd=q.replace(/\D/g,'');
+  return calls.filter(c=>(filter==='all'||c.status===filter)&&(!q||[c.name,c.email,c.zip].some(v=>(v||'').toLowerCase().includes(q))||(qd&&c.number.replace(/\D/g,'').includes(qd))))}
+function render(){
+  const ans=calls.filter(c=>c.status==='Answered').length,miss=calls.filter(c=>c.status==='Missed').length,talk=calls.reduce((a,c)=>a+c.dur,0);
+  $('kpis').innerHTML=[['Total calls',calls.length],['Answered',ans],['Missed',miss],['Talk time',mmss(talk)]].map(([l,v])=>`<div class="kpi"><span>${l}</span><b>${v}</b></div>`).join('');
+  const list=visible();
+  $('empty').classList.toggle('hide',list.length>0);
+  $('empty').innerHTML=calls.length?'<b>No matching calls</b>Try a different filter or search.':'<b>No calls yet</b>Every answered, missed and outgoing call will appear here as soon as it ends.';
+  $('rows').innerHTML=list.map(c=>{
+    const k=c.status==='Answered'?['d-ans','i-in','#16a34a']:c.status==='Missed'?['d-miss','i-miss','#dc2626']:['d-out','i-out','#2563eb'];
+    const d=new Date(c.start);
+    return`<tr data-id="${c.id}" class="${c.id===lastNew?'new':''} ${c.id===openId?'sel':''}">
+      <td><span class="dirico ${k[0]}"><svg width="15" height="15"><use href="#${k[1]}"/></svg></span></td>
+      <td class="numcell">${esc(c.number)}</td><td>${esc(c.name)||'<span class="muted">—</span>'}</td>
+      <td><span class="badge ${k[0]}">${esc(c.status)}${c.status==='Outgoing'&&!c.connected?' · no answer':''}</span></td>
+      <td>${d.toLocaleDateString([], {month:'short',day:'numeric'})}, ${d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}</td>
+      <td class="r mono">${mmss(c.dur)}</td><td>${esc(c.zip)||'<span class="muted">—</span>'}</td><td>${esc(c.email)||'<span class="muted">—</span>'}</td></tr>`}).join('');
+  lastNew=null}
+$('rows').addEventListener('click',e=>{const tr=e.target.closest('tr');if(tr)openDrawer(+tr.dataset.id)});
+
+$('bCopy').onclick=async()=>{const head=['Number','Name','Status','Date','Duration','Hang-up reason','ZIP','Email','Notes','Agent'];
+  const q=v=>`"${String(v??'').replace(/"/g,'""')}"`;
+  const csv=[head.join(','),...visible().map(c=>[c.number,c.name,c.status,new Date(c.start).toLocaleString(),mmss(c.dur),c.reason,c.zip,c.email,c.notes,c.agent].map(q).join(','))].join('\n');
+  try{await navigator.clipboard.writeText(csv);toast('Copied '+visible().length+' rows. Paste into Excel or Google Sheets.')}catch{toast('Copy was blocked by the browser.')}};
+
+/* demo recording: generated audio that stands in for the real call recording */
+function demoWav(sec){const sr=8000,n=sr*sec,b=new ArrayBuffer(44+n*2),v=new DataView(b);
+  const w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+  w(0,'RIFF');v.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*2,true);
+  for(let i=0;i<n;i++){const t=i/sr;v.setInt16(44+i*2,(t%1)<.35?Math.sin(2*Math.PI*425*t)*5000:0,true)}
+  return URL.createObjectURL(new Blob([b],{type:'audio/wav'}))}
+
+function openDrawer(id){const c=calls.find(x=>x.id===id);if(!c)return;openId=id;
+  $('dAv').textContent=(c.name||'?')[0].toUpperCase();$('dTitle').textContent=c.name||'Unknown caller';$('dSub').textContent=c.number;
+  const d=new Date(c.start);
+  $('facts').innerHTML=[
+    ['Status',c.status+(c.status==='Outgoing'&&!c.connected?' (no answer)':'')],['Duration',mmss(c.dur)],
+    ['Date',d.toLocaleDateString([], {weekday:'short',month:'short',day:'numeric',year:'numeric'})],['Time',d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit',second:'2-digit'})],
+    ['Hang-up reason',c.reason,'wide'],['Handled by',c.agent],['Direction',c.status==='Outgoing'?'Outbound':'Inbound']
+  ].map(([l,v,w])=>`<div class="${w||''}"><span>${l}</span><b>${esc(v)}</b></div>`).join('');
+  if(!c.rec)$('rec').innerHTML=`<p style="margin:0">${c.connected?'Recording was turned off for this call.':'No recording. The call was not connected.'}</p>`;
+  else if(c.demo)$('rec').innerHTML=`<audio controls preload="none" src="${demoWav(Math.min(Math.max(c.dur,2),8))}"></audio><p>Demo call. Real calls through your phone system save the actual recording here.</p>`;
+  else{$('rec').innerHTML='<p style="margin:0">Loading recording…</p>';
+    getRec(c.id).then(b=>{if(openId!==c.id)return;
+      if(!b){$('rec').innerHTML='<p style="margin:0">Recording not found on this computer.</p>';return}
+      const u=URL.createObjectURL(b);const ext=(b.type.includes('ogg')?'ogg':'webm');
+      $('rec').innerHTML=`<audio controls src="${u}"></audio><p><a href="${u}" download="wego-${c.number.replace(/\D/g,'')}-${c.id}.${ext}">Download recording</a> · saved on this computer</p>`})}
+  $('dName').value=c.name||'';$('dNum').value=c.number;$('dZip').value=c.zip||'';$('dEmail').value=c.email||'';$('dNotes').value=c.notes||'';$('eDet').textContent='';
+  $('drawer').classList.add('open');render();setTimeout(()=>$('dName').focus(),60)}
+function closeDrawer(){$('drawer').classList.remove('open');openId=null;if(user)render()}
+$('dClose').onclick=closeDrawer;$('dCancel').onclick=closeDrawer;
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&openId)closeDrawer()});
+$('fDet').addEventListener('submit',e=>{e.preventDefault();const c=calls.find(x=>x.id===openId);if(!c)return;
+  const zip=$('dZip').value.trim(),email=$('dEmail').value.trim();
+  if(zip&&!/^\d{5}(-\d{4})?$/.test(zip)){$('eDet').textContent='Enter a valid US ZIP code (e.g. 94107).';return}
+  if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){$('eDet').textContent='Enter a valid email address.';return}
+  Object.assign(c,{name:$('dName').value.trim(),number:$('dNum').value.trim()||c.number,zip,email,notes:$('dNotes').value.trim()});
+  save();$('eDet').textContent='';$('dTitle').textContent=c.name||'Unknown caller';$('dAv').textContent=(c.name||'?')[0].toUpperCase();render();toast('Customer details saved.')});
+
+/* ---------- Team: live status, call alerts, chat ----------
+   Same computer: BroadcastChannel between tabs. Different computers: the Wego Team Server (WebSocket). */
+let bc=null,tws=null,twsTimer=null,hbTimer=null,peerTimer=null;
+const seen=new Set(),peers={};
+let chatMsgs=[],unread=0;
+const rid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+
+function teamStart(){
+  try{bc=new BroadcastChannel('wego-team');bc.onmessage=e=>teamRecv(e.data)}catch{bc=null}
+  teamWsStart();
+  chatMsgs=store.get('wego-chat',[]);for(const m of chatMsgs)seen.add(m.id);
+  unread=0;renderChat();$('chat').classList.remove('hide');
+  teamSend({type:'hello'});sendPresence();
+  hbTimer=setInterval(sendPresence,15000);peerTimer=setInterval(renderPeers,1000);renderPeers()}
+function teamStop(){
+  if(user){teamSend({type:'presence',state:'offline'})}
+  clearInterval(hbTimer);clearInterval(peerTimer);clearTimeout(twsTimer);
+  try{bc&&bc.close()}catch{}bc=null;
+  if(tws){const w=tws;tws=null;try{w.close()}catch{}}
+  for(const k in peers)delete peers[k];
+  $('notifs').innerHTML='';$('peers').innerHTML='';$('chat').classList.add('hide')}
+
+function teamWsStart(){
+  clearTimeout(twsTimer);if(tws){const w=tws;tws=null;try{w.close()}catch{}}
+  const url=store.get('wego-team','');if(!url||!user||inPreview)return;
+  let w;try{w=new WebSocket(url)}catch{return}
+  tws=w;
+  w.onopen=()=>{if(tws!==w)return;teamSend({type:'hello'});sendPresence();$('cSub').textContent='Connected to team server'};
+  w.onmessage=e=>{try{teamRecv(JSON.parse(e.data))}catch{}};
+  w.onclose=()=>{if(tws!==w)return;tws=null;$('cSub').textContent='Team server offline – retrying…';twsTimer=setTimeout(teamWsStart,4000)}}
+
+function teamSend(m){if(!user)return;
+  const msg=Object.assign({id:rid(),from:user.id,fromName:user.name,color:user.color,ts:Date.now()},m);seen.add(msg.id);
+  try{bc&&bc.postMessage(msg)}catch{}
+  try{if(tws&&tws.readyState===1)tws.send(JSON.stringify(msg))}catch{}
+  return msg}
+
+function sendPresence(){if(!user)return;
+  const oncall=!!(cur&&cur.answeredAt);
+  teamSend({type:'presence',state:oncall?'oncall':$('avail').value.toLowerCase(),since:oncall?cur.answeredAt:Date.now(),number:oncall?cur.number:''})}
+
+function teamRecv(m){if(!m||!user)return;
+  if(m.type==='history'){(m.msgs||[]).forEach(addChat);return}
+  if(!m.id||seen.has(m.id))return;seen.add(m.id);
+  if(m.from===user.id)return;
+  const p=peers[m.from]||(peers[m.from]={});p.name=m.fromName;p.color=m.color;p.seen=Date.now();
+  if(m.type==='hello'){sendPresence();return}
+  if(m.type==='presence'){p.state=m.state;p.since=m.since;p.number=m.number;if(m.state==='offline')p.seen=0;renderPeers();return}
+  if(m.type==='answered'){p.state='oncall';p.since=m.ts;p.number=m.number;renderPeers();
+    notify('ans',m,`${m.fromName} answered this call`,`${m.dir==='out'?'Outbound call to':'Inbound call from'} <span class="mono">${esc(m.number)}</span>${m.name?' · '+esc(m.name):''}`);return}
+  if(m.type==='ended'){p.state='available';renderPeers();
+    notify('end',m,`${m.fromName} is off the call`,`Call with <span class="mono">${esc(m.number)}</span> ended after ${mmss(m.dur||0)}. ${esc(m.fromName)} is free now.`);return}
+  if(m.type==='chat')addChat(m)}
+
+function notify(kind,m,title,body){
+  const el=document.createElement('div');el.className='nt '+kind;el.setAttribute('role','alert');
+  el.innerHTML=`<div class="av" style="background:${/^#[0-9a-f]{6}$/i.test(m.color||'')?m.color:'#475569'}">${esc((m.fromName||'?')[0])}</div>
+    <div><b>${esc(title)}</b><p>${body}</p><p>${new Date(m.ts).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}</p></div>
+    <button class="x" aria-label="Dismiss">✕</button>`;
+  el.querySelector('.x').onclick=()=>el.remove();
+  $('notifs').prepend(el);chime(kind==='ans'?660:520);desk(title,(m.number||'')+(m.name?' · '+m.name:''),false)}
+
+function renderPeers(){if(!user)return;const now=Date.now();
+  $('peers').innerHTML=PROFILES.filter(p=>p.id!==user.id).map(pr=>{const p=peers[pr.id]||{};
+    const online=p.seen&&now-p.seen<45000;let st='Offline',dot='#9aa1ad',cls='';
+    if(online){if(p.state==='oncall'){st='On a call · '+mmss(Math.max(0,Math.round((now-(p.since||now))/1000)));dot='var(--stop)';cls='oncall'}
+      else if(p.state==='busy'){st='Busy';dot='var(--stop)'}else if(p.state==='away'){st='Away';dot='var(--warn)'}else{st='Available';dot='var(--go)'}}
+    return`<div class="peer ${cls}" title="${esc(pr.name)}: ${esc(st)}"><div class="av" style="background:${pr.color};--pc:${dot}">${pr.name[0]}</div><b>${pr.name}</b><span>${esc(st)}</span></div>`}).join('')}
+
+/* chat */
+function addChat(m){if(!m||m.type!=='chat'||!m.id)return;
+  if(chatMsgs.some(x=>x.id===m.id))return;seen.add(m.id);
+  chatMsgs.push({id:m.id,from:m.from,fromName:m.fromName,text:String(m.text||'').slice(0,1000),ts:m.ts});
+  chatMsgs.sort((a,b)=>a.ts-b.ts);if(chatMsgs.length>300)chatMsgs=chatMsgs.slice(-300);
+  store.set('wego-chat',chatMsgs);
+  if(user&&m.from!==user.id&&m.ts>Date.now()-60000)desk('Message from '+m.fromName,String(m.text||'').slice(0,140),false);
+  if(user&&m.from!==user.id&&($('chat').classList.contains('min')||document.hidden)){unread++;chime(880)}
+  renderChat()}
+function renderChat(){const l=$('cList');
+  if(!chatMsgs.length)l.innerHTML='<div class="cempty">No messages yet. Say hi to your team.</div>';
+  else{let last='';l.innerHTML=chatMsgs.map(m=>{const d=new Date(m.ts),day=d.toDateString();
+    const sep=day!==last?`<div class="csys">${d.toLocaleDateString([], {weekday:'short',month:'short',day:'numeric'})}</div>`:'';last=day;
+    const me=user&&m.from===user.id;
+    return sep+`<div class="cm ${me?'me':''}"><div class="who">${me?'You':esc(m.fromName)} · ${d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}</div><div class="bub">${esc(m.text)}</div></div>`}).join('')}
+  l.scrollTop=l.scrollHeight;
+  $('cBadge').textContent=unread;$('cBadge').classList.toggle('hide',!unread)}
+$('cHead').onclick=()=>{const min=$('chat').classList.toggle('min');$('cHead').setAttribute('aria-expanded',String(!min));$('cCar').textContent=min?'▲':'▼';
+  if(!min){unread=0;renderChat();setTimeout(()=>$('cIn').focus(),30)}};
+$('cForm').addEventListener('submit',e=>{e.preventDefault();const t=$('cIn').value.trim();if(!t)return;
+  const m=teamSend({type:'chat',text:t});$('cIn').value='';addChat(m)});
+
+function desk(title,body,urgent){
+  try{if(window.wegoDesktop&&urgent)window.wegoDesktop.attention();
+    if(document.hasFocus()&&!document.hidden)return;
+    if('Notification' in window&&Notification.permission!=='denied'){
+      const go=()=>{const n=new Notification(title,{body,silent:true});n.onclick=()=>{window.focus();window.wegoDesktop&&window.wegoDesktop.focus()}};
+      Notification.permission==='granted'?go():Notification.requestPermission().then(p=>{if(p==='granted')go()})}}catch{}}
+function chime(f){try{const c=new (window.AudioContext||window.webkitAudioContext)(),o=c.createOscillator(),g=c.createGain();
+  o.frequency.value=f;g.gain.setValueAtTime(.08,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.35);
+  o.connect(g).connect(c.destination);o.start();o.stop(c.currentTime+.36);setTimeout(()=>c.close().catch(()=>{}),600)}catch{}}
+
+/* ---------- SIP settings ---------- */
+function openSettings(){if(!user)return;
+  $('mWho').textContent=user.name;
+  $('sDisp').value=sip.disp||user.name;$('sUser').value=sip.user||'';$('sDomain').value=sip.domain||'';$('sAuth').value=sip.auth||'';
+  $('sPass').value=sip.pass||'';$('sWss').value=sip.wss||'';$('sStun').value=sip.stun||'';$('sExp').value=sip.exp||'';
+  $('sAuto').checked=!!sip.auto;$('sRec').checked=sip.rec!==false;$('sTeam').value=store.get('wego-team','');
+  $('sMsg').className='msg';$('sMsg').textContent=registered?'Connected and registered as '+sip.user+'@'+sip.domain+'.':'';
+  if(inPreview&&!registered)setMsg('bad','You are viewing Wego inside Claude, which blocks phone connections. To take real calls, open the Wego.html file in Chrome on your computer and connect there. You can still save your settings here.');
+  $('mSet').classList.remove('hide');setTimeout(()=>$('sUser').focus(),40)}
+function closeSettings(){$('mSet').classList.add('hide')}
+$('railSet').onclick=openSettings;$('conn').onclick=openSettings;$('mClose').onclick=closeSettings;
+$('mSet').addEventListener('click',e=>{if(e.target===$('mSet'))closeSettings()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('mSet').classList.contains('hide'))closeSettings()});
+$('sEye').onclick=()=>{const p=$('sPass');p.type=p.type==='password'?'text':'password';$('sEye').textContent=p.type==='password'?'Show':'Hide'};
+function readForm(){
+  let wss=$('sWss').value.trim();if(wss&&!/^wss?:\/\//i.test(wss))wss='wss://'+wss;
+  return{disp:$('sDisp').value.trim(),user:$('sUser').value.trim(),domain:$('sDomain').value.trim().replace(/^sips?:/i,'').replace(/\/.*$/,''),
+    auth:$('sAuth').value.trim(),pass:$('sPass').value,wss,stun:$('sStun').value.trim(),exp:+$('sExp').value||0,auto:$('sAuto').checked,rec:$('sRec').checked}}
+function saveTeam(){let t=$('sTeam').value.trim();if(t&&!/^wss?:\/\//i.test(t))t='ws://'+t;
+  if(t!==store.get('wego-team','')){store.set('wego-team',t);teamWsStart()}}
+function saveForm(){saveTeam();const f=readForm();
+  if(!f.user&&!f.domain&&!f.pass&&!f.wss){setMsg('ok','Team server saved. Add your SIP account to take real calls.');return false}
+  if(!f.user||!f.domain||!f.pass||!f.wss){setMsg('bad','Fill in username, domain, password and WebSocket address.');return false}
+  sip=f;store.set('wego-sip-'+user.id,sip);return true}
+$('sSave').onclick=()=>{if(saveForm())setMsg('ok','Settings saved.')};
+$('fSip').addEventListener('submit',e=>{e.preventDefault();if(saveForm())sipConnect()});
+$('sDisc').onclick=()=>{sipDisconnect();$('sMsg').className='msg';$('sMsg').textContent='Disconnected. Wego is in demo mode.'};
+
+function setConn(cls,txt){$('conn').className='conn '+cls;$('connTx').textContent=txt}
+function setMsg(cls,txt){$('sMsg').className='msg '+cls;$('sMsg').textContent=txt}
+const inPreview=(()=>{try{return window.top!==window.self}catch{return true}})();
+
+function loadJsSIP(){if(window.JsSIP)return Promise.resolve();
+  return new Promise((res,rej)=>{const s=document.createElement('script');s.src=JSSIP_URL;s.onload=()=>window.JsSIP?res():rej(new Error('SIP library did not start'));
+    s.onerror=()=>rej(new Error('Could not load the SIP library. Check your internet connection.'));document.head.appendChild(s)})}
+
+async function sipConnect(){
+  if(!sip.wss||!sip.user){openSettings();return}
+  if(inPreview){setConn('bad','Preview – open Wego.html to connect');setMsg('bad','Real calls cannot connect inside the Claude preview. Open the Wego.html file in Chrome on your computer, sign in, and press Save & connect there.');return}
+  sipDisconnect(true);setConn('busy','Connecting…');setMsg('','Connecting to '+sip.wss+' …');
+  try{await loadJsSIP()}catch(err){setConn('bad','Connection failed');setMsg('bad',err.message);return}
+  try{
+    const sock=new JsSIP.WebSocketInterface(sip.wss);
+    ua=new JsSIP.UA({sockets:[sock],uri:'sip:'+sip.user+'@'+sip.domain,password:sip.pass,authorization_user:sip.auth||sip.user,
+      display_name:sip.disp||user.name,register:true,register_expires:sip.exp||600,session_timers:false,user_agent:'Wego/1.0'});
+  }catch(err){setConn('bad','Settings error');setMsg('bad','Check your settings: '+err.message);ua=null;return}
+  let everConnected=false;
+  ua.on('connected',()=>{everConnected=true;setConn('busy','Registering…')});
+  ua.on('disconnected',()=>{registered=false;
+    if(!ua)return;
+    if(!everConnected){setConn('bad','Cannot reach server');
+      setMsg('bad',inPreview?'The server could not be reached. The preview inside Claude blocks phone connections. Open the Wego file on your computer and connect from there.':'The server could not be reached. Check the WebSocket address and port with your provider.')}
+    else setConn('busy','Reconnecting…')});
+  ua.on('registered',()=>{registered=true;setConn('ok','Connected · '+sip.user);setMsg('ok','Registered as '+sip.user+'@'+sip.domain+'. Inbound calls will ring in Wego.');toast('Phone system connected.')});
+  ua.on('unregistered',()=>{registered=false;if(ua)setConn('busy','Not registered')});
+  ua.on('registrationFailed',e=>{registered=false;const c=e.cause||'Unknown error';
+    setConn('bad','Registration failed');
+    setMsg('bad','Registration failed: '+c+(/auth/i.test(c)?' – check the username, Auth ID and password.':''))});
+  ua.on('newRTCSession',e=>onSession(e));
+  ua.start()}
+
+function sipDisconnect(silent){registered=false;
+  if(ua){const u=ua;ua=null;try{u.stop()}catch{}}
+  if(!silent&&user)setConn('idle','Not connected · Demo mode')}
+
+function mediaOpts(){const ice=[{urls:sip.stun||'stun:stun.l.google.com:19302'}];
+  return{mediaConstraints:{audio:true,video:false},pcConfig:{iceServers:ice},rtcOfferConstraints:{offerToReceiveAudio:true,offerToReceiveVideo:false}}}
+
+function onSession(e){const s=e.session;
+  if(e.originator==='remote'){
+    if(cur||$('avail').value!=='Available'){try{s.terminate({status_code:486,reason_phrase:'Busy Here'})}catch{}
+      const ri=s.remote_identity;calls.unshift({id:Date.now(),number:fmt(ri.uri.user),name:ri.display_name||'',status:'Missed',connected:false,start:Date.now(),dur:0,
+        reason:cur?'Rejected – agent was on another call':'Rejected – agent status was '+$('avail').value,agent:user.name,zip:'',email:'',notes:'',rec:false});save();render();return}
+    const ri=s.remote_identity;
+    cur={id:Date.now(),dir:'in',number:fmt(ri.uri.user),name:ri.display_name||'',start:Date.now(),session:s};
+    bindSession(s);showIncoming()}
+}
+function bindSession(s){const me=cur;me.session=s;
+  const hook=pc=>{if(!pc||pc._wego)return;pc._wego=true;
+    pc.addEventListener('track',ev=>{const st=ev.streams[0]||new MediaStream([ev.track]);$('remote').srcObject=st;$('remote').play?.().catch(()=>{})})};
+  s.on('peerconnection',ev=>hook(ev.peerconnection));if(s.connection)hook(s.connection);
+  s.on('progress',()=>{if(me.dir==='out'&&cur===me)$('sSt').textContent='Ringing…'});
+  s.on('confirmed',()=>{if(cur!==me)return;connect();if(sip.rec!==false)startRecording(me);else{me.norec=true;$('bRec').classList.remove('on')}});
+  s.on('ended',ev=>{if(cur!==me)return;finish(reasonText(ev,me,true))});
+  s.on('failed',ev=>{if(cur!==me)return;finish(reasonText(ev,me,false))})}
+
+function reasonText(ev,c,wasUp){const C=JsSIP.C.causes,o=ev.originator,k=ev.cause;
+  if(wasUp&&k===C.BYE)return o==='local'?'Agent ended the call':'Customer ended the call';
+  if(k===C.CANCELED)return o==='local'?'Cancelled by agent before answer':'Caller hung up before answer';
+  if(k===C.REJECTED||k===C.BUSY){if(c.declined)return'Declined by agent';return c.dir==='out'?'Customer line busy / rejected':'Rejected'}
+  if(k===C.NO_ANSWER||k===C.EXPIRES)return'No answer';
+  if(k===C.UNAVAILABLE)return'Number unavailable';
+  if(k===C.NOT_FOUND||k===C.ADDRESS_INCOMPLETE)return'Invalid or unknown number';
+  if(k===C.USER_DENIED_MEDIA_ACCESS)return'Microphone access was blocked';
+  if(k===C.CONNECTION_ERROR||k===C.REQUEST_TIMEOUT||k===C.RTP_TIMEOUT)return'Connection lost';
+  if(k===C.SIP_FAILURE_CODE&&ev.message?.status_code)return'Failed – SIP '+ev.message.status_code+' '+(ev.message.reason_phrase||'');
+  return(o==='local'?'Ended by agent':'Ended by customer')+(k?' ('+k+')':'')}
+
+/* recording: mix agent mic + customer audio into one file, stored in this browser */
+function startRecording(c){try{
+  const pc=c.session.connection;if(!pc||!window.MediaRecorder)return;
+  const ctx=new (window.AudioContext||window.webkitAudioContext)(),dest=ctx.createMediaStreamDestination();
+  const add=t=>{if(t&&t.kind==='audio')ctx.createMediaStreamSource(new MediaStream([t])).connect(dest)};
+  pc.getSenders().forEach(x=>add(x.track));pc.getReceivers().forEach(x=>add(x.track));
+  const type=['audio/webm;codecs=opus','audio/webm','audio/ogg'].find(t=>MediaRecorder.isTypeSupported(t))||'';
+  const r=new MediaRecorder(dest.stream,type?{mimeType:type}:{}),chunks=[];
+  r.ondataavailable=ev=>{if(ev.data.size)chunks.push(ev.data)};
+  r.onstop=()=>{if(chunks.length)putRec(c.id,new Blob(chunks,{type:r.mimeType||'audio/webm'}))};
+  r.start(1000);c.recorder=r;c.mixCtx=ctx}catch(err){console.warn('Recording unavailable',err)}}
+
+let dbp=null;
+function db(){return dbp||(dbp=new Promise((res,rej)=>{try{const q=indexedDB.open('wego',1);q.onupgradeneeded=()=>q.result.createObjectStore('recs');q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)}catch(err){rej(err)}}))}
+const memRecs=new Map();
+function putRec(id,blob){memRecs.set(id,blob);db().then(d=>{d.transaction('recs','readwrite').objectStore('recs').put(blob,id)}).catch(()=>{});
+  if(openId===id)openDrawer(id)}
+function getRec(id){if(memRecs.has(id))return Promise.resolve(memRecs.get(id));
+  return db().then(d=>new Promise(res=>{const q=d.transaction('recs').objectStore('recs').get(id);q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null)})).catch(()=>null)}
+
+/* ringtone for inbound calls */
+let rt=null;
+function ringtone(on){try{
+  if(!on){if(rt){clearInterval(rt.i);rt.c.close().catch(()=>{});rt=null}return}
+  if(rt)return;const c=new (window.AudioContext||window.webkitAudioContext)();
+  const beep=()=>{const o=c.createOscillator(),g=c.createGain();o.frequency.value=480;g.gain.value=.06;o.connect(g).connect(c.destination);o.start();o.stop(c.currentTime+.9)};
+  beep();rt={c,i:setInterval(beep,3000)}}catch{}}
+
+let tt;function toast(m){$('toast').textContent=m;$('toast').classList.remove('hide');clearTimeout(tt);tt=setTimeout(()=>$('toast').classList.add('hide'),2600)}
+}
+</script>
+</body>
+</html>
