@@ -25,7 +25,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          dotnet publish engine/WegoEngine.csproj -c Release -o engine/bin -clp:NoSummary > engine-build.log 2>&1
+          dotnet publish engine/WegoEngine.csproj -c Release -o engine/publish -clp:NoSummary > engine-build.log 2>&1
           code=$?
           if [ $code -ne 0 ]; then
             grep -E "error|Error" engine-build.log | sort -u | head -40 | while IFS= read -r l; do echo "::error::${l//[$'\r']/}"; done
@@ -33,7 +33,7 @@ jobs:
           fi
           grep -E "warning CS" engine-build.log | sort -u | head -10 | while IFS= read -r l; do echo "::warning::${l//[$'\r']/}"; done
           grep -iE "Restored|sipsorcery" engine-build.log | head -5
-          ls -la engine/bin
+          ls -la engine/publish
 
       - uses: actions/setup-node@v4
         with:
@@ -57,12 +57,12 @@ jobs:
       - name: Measure sizes
         shell: bash
         run: |
-          eng=$(du -sm engine/bin | cut -f1)
+          eng=$(du -sm engine/publish | cut -f1)
           unp=$(du -sm dist/win-unpacked | cut -f1)
           loc=$(du -sm dist/win-unpacked/locales | cut -f1)
           res=$(du -sm dist/win-unpacked/resources | cut -f1)
           exe=$(du -sm dist/Wego-Setup.exe | cut -f1)
-          files=$(ls -la engine/bin | awk 'NR>1{printf "%s=%dMB ", $9, $5/1048576}')
+          files=$(ls -la engine/publish | awk 'NR>1{printf "%s=%dMB ", $9, $5/1048576}')
           echo "::notice::Sizes MB: installer=$exe unpacked=$unp engine=$eng resources=$res locales=$loc | engine files: $files"
 
       - name: Upload installer

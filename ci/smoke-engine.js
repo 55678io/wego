@@ -1,7 +1,7 @@
 // CI smoke test: start the real engine on the Windows runner and check that it answers.
 const { spawn } = require('child_process');
 const path = require('path');
-const exe = path.join(__dirname, '..', 'engine', 'bin', 'wego-engine.exe');
+const exe = path.join(__dirname, '..', 'engine', 'publish', 'wego-engine.exe');
 const p = spawn(exe, [], { stdio: ['pipe', 'pipe', 'pipe'] });
 const seen = {}; const lines = [];
 let buf = '';

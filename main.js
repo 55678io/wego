@@ -78,7 +78,7 @@ function createTray() {
 /* ---------------- SIP engine (UDP / TCP / TLS) ---------------- */
 function enginePath() {
   const packaged = path.join(process.resourcesPath || '', 'engine', 'wego-engine.exe');
-  const dev = path.join(__dirname, 'engine', 'bin', 'wego-engine.exe');
+  const dev = path.join(__dirname, 'engine', 'publish', 'wego-engine.exe');
   return app.isPackaged ? packaged : dev;
 }
 function engineAvailable() {

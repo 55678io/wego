@@ -52,7 +52,7 @@
     },
     "extraResources": [
       {
-        "from": "engine/bin",
+        "from": "engine/publish",
         "to": "engine",
         "filter": [
           "**/*"

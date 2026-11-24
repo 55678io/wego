@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
+    <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>disable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>wego-engine</AssemblyName>
@@ -13,12 +13,25 @@
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <DebugType>none</DebugType>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <!-- smaller engine: remove unused parts of .NET, keep everything Wego and its libraries use -->
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>partial</TrimMode>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
+    <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="SIPSorcery" Version="8.*" />
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="System.Speech" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <TrimmerRootAssembly Include="SIPSorcery" />
+    <TrimmerRootAssembly Include="NAudio.Core" />
+    <TrimmerRootAssembly Include="NAudio.WinMM" />
+    <TrimmerRootAssembly Include="System.Speech" />
   </ItemGroup>
 
   <ItemGroup>
