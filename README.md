@@ -4,11 +4,11 @@ Wego is the support team's softphone for Windows: answer and place calls through
 
 ## Get the Windows installer
 
-1. Open the **Actions** tab of this repository.
-2. Click the latest green **Build Windows app** run.
-3. Under **Artifacts**, download **Wego-Windows-Installer**, unzip it and run `Wego-Setup-x.y.z.exe`.
+**Download:** https://github.com/55678io/wego/releases/latest/download/Wego-Setup.exe
 
-For a permanent download link, create a version tag (for example `v1.0.1`). The installer is then attached to a **Release**.
+No GitHub account is needed. This link always gives the newest version.
+
+To publish a new version, push a tag such as `v1.0.1`. GitHub builds the installer and attaches it to a new Release.
 
 Windows may show "Windows protected your PC" because the app is not code-signed. Click **More info → Run anyway**.
 
