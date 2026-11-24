@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('wegoDesktop', {
   focus: () => ipcRenderer.send('wego:focus'),
   showItem: p => ipcRenderer.send('wego:showItem', p),
   openRecordings: () => ipcRenderer.send('wego:openRecordings'),
+  pickAudio: () => ipcRenderer.invoke('wego:pickAudio'),
   getStartup: () => ipcRenderer.invoke('wego:getStartup'),
   setStartup: on => ipcRenderer.send('wego:setStartup', !!on),
   version: () => ipcRenderer.invoke('wego:version'),

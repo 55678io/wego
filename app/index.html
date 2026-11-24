@@ -105,6 +105,24 @@ label{display:block;font-size:13px;font-weight:500;color:var(--mute);margin:14px
 .upd button{min-height:36px;font-size:13px}
 .drow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.drow button{min-height:38px;font-size:13px}
 .only-wss,.only-native{}
+a{color:var(--acc)}a:visited{color:var(--acc)}
+.screen.live{background:color-mix(in srgb,var(--go) 9%,var(--soft));border-color:color-mix(in srgb,var(--go) 35%,var(--line))}
+.screen.ring{background:color-mix(in srgb,var(--acc) 8%,var(--soft));border-color:color-mix(in srgb,var(--acc) 35%,var(--line))}
+.kpi:nth-child(2) b{color:var(--go)}.kpi:nth-child(3) b{color:var(--stop)}
+.rail button.on{box-shadow:inset 3px 0 0 var(--acc)}
+.phone,.sheet{box-shadow:0 1px 2px #0000000d,0 8px 24px -18px #0003}
+.pad button{transition:transform .06s ease,background .15s}.pad button:active{transform:scale(.96)}
+.go,.stop,.primary{box-shadow:0 1px 0 #ffffff26 inset}
+.top{position:sticky;top:0;z-index:4;backdrop-filter:saturate(1.2)}
+.mhead h2::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--acc);margin-right:10px;vertical-align:1px}
+.sh3{font-size:15px;margin:22px 0 2px;padding-top:16px;border-top:1px solid var(--line)}
+.ck{display:flex;align-items:center;gap:8px;color:var(--ink);font-size:14px;margin:14px 0 0}.ck input{width:18px;height:18px;margin:0;accent-color:var(--acc)}
+input[type=range]{padding:0;border:0;accent-color:var(--acc);height:28px;box-shadow:none}
+.holdrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}
+.holdname{flex:1;min-width:160px}.holdname b{display:block;font-size:14px}.holdname span{font-size:12px;color:var(--mute)}
+.holdrow button{min-height:38px;font-size:13px}
+.themebtn{width:40px;min-height:40px;padding:0;display:grid;place-items:center}
+.formside .themebtn{position:absolute;top:16px;right:16px}
 .ctl button{font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:56px}
 .ctl button.on{background:var(--accs);border-color:var(--acc);color:var(--acc)}
 .ctl button:disabled{opacity:.45;cursor:not-allowed}
@@ -256,7 +274,8 @@ details.adv summary{cursor:pointer;font-size:14px;font-weight:600;margin-top:18p
   <symbol id="i-list" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></symbol>
   <symbol id="i-out2" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/></symbol>
   <symbol id="i-gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></g></symbol>
-  <symbol id="i-back"viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M20 12H9m4-5-5 5 5 5"/></symbol>
+  <symbol id="i-theme" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3a9 9 0 1 0 9 9c0-.5 0-1-.1-1.4A5.5 5.5 0 0 1 13.4 3.1 9 9 0 0 0 12 3z"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M20 12H9m4-5-5 5 5 5"/></symbol>
 </svg>
 
 <!-- ============ SIGN-IN ============ -->
@@ -291,7 +310,8 @@ details.adv summary{cursor:pointer;font-size:14px;font-weight:600;margin-top:18p
     </svg>
   </div>
 
-  <div class="formside">
+  <div class="formside" style="position:relative">
+    <button class="themebtn" id="themeBtn2" title="Theme: system" aria-label="Change theme"><svg width="18" height="18"><use href="#i-theme"/></svg></button>
     <!-- step 1: access code -->
     <form class="form" id="fCode">
       <div class="step">Step 1 of 3</div>
@@ -347,6 +367,7 @@ details.adv summary{cursor:pointer;font-size:14px;font-weight:600;margin-top:18p
         <select id="avail" aria-label="Availability"><option>Available</option><option>Busy</option><option>Away</option></select>
       </div>
       <div class="me"><div class="av" id="mAv"></div><div><span id="mName"></span><small>Support agent</small></div></div>
+      <button class="themebtn" id="themeBtn" title="Theme: system" aria-label="Change theme"><svg width="18" height="18"><use href="#i-theme"/></svg></button>
       <button id="signout">Sign out</button>
     </header>
 
@@ -456,8 +477,9 @@ details.adv summary{cursor:pointer;font-size:14px;font-weight:600;margin-top:18p
 
 <div class="modal hide" id="mSet" role="dialog" aria-modal="true" aria-labelledby="mSetT">
   <form class="mbox" id="fSip" autocomplete="off">
-    <div class="mhead"><h2 id="mSetT">Phone system (SIP account)</h2><button type="button" class="x" id="mClose" aria-label="Close">✕</button></div>
+    <div class="mhead"><h2 id="mSetT">Settings</h2><button type="button" class="x" id="mClose" aria-label="Close">✕</button></div>
     <div class="mbody">
+      <h3 class="sh3" style="border:0;padding:0;margin-top:8px">Phone system</h3>
       <p class="hint">Enter the SIP account details from your phone system (the same ones used in MicroSIP). These are saved for <b id="mWho"></b> on this computer only.</p>
       <div class="g2">
         <div><label for="sDisp">Display name</label><input id="sDisp" placeholder="James"></div>
@@ -480,6 +502,29 @@ details.adv summary{cursor:pointer;font-size:14px;font-weight:600;margin-top:18p
       <div class="g2 only-native">
         <div><label for="sMic">Microphone</label><select id="sMic"><option value="-1">System default</option></select></div>
         <div><label for="sSpk">Speaker / headset</label><select id="sSpk"><option value="-1">System default</option></select></div>
+      </div>
+      <div class="only-native">
+        <h3 class="sh3">Call audio</h3>
+        <div class="g2">
+          <label class="ck"><input type="checkbox" id="aAgc" checked>Auto volume (keeps voices steady and clear)</label>
+          <label class="ck"><input type="checkbox" id="aGate" checked>Reduce background noise</label>
+          <div><label for="aMic">Microphone boost <b id="aMicV">1.0×</b></label><input type="range" id="aMic" min="0.5" max="3" step="0.1" value="1"></div>
+          <div><label for="aSpk">Customer voice boost <b id="aSpkV">1.0×</b></label><input type="range" id="aSpk" min="0.5" max="3" step="0.1" value="1"></div>
+        </div>
+        <h3 class="sh3">On hold</h3>
+        <p class="hint">When you press Hold, the customer hears music. After the set time, the music pauses for a spoken announcement in a female voice, then continues.</p>
+        <div class="holdrow">
+          <div class="holdname"><b id="hName">Wego Jazz (default)</b><span id="hInfo">Original instrumental, free to use</span></div>
+          <button type="button" id="hPick">Choose MP3…</button>
+          <button type="button" id="hDef">Use default</button>
+        </div>
+        <div class="g2">
+          <label class="ck"><input type="checkbox" id="hAnn" checked>Play announcement</label>
+          <div><label for="hAfter">Announcement after (seconds)</label><input id="hAfter" type="number" min="5" max="600" value="30"></div>
+        </div>
+        <label for="hText">Announcement text</label>
+        <input id="hText" value="Please stay on the line, as we value your call.">
+        <div class="drow"><button type="button" id="hPrev">▶ Preview on my speaker</button><button type="button" id="hStop">Stop</button></div>
       </div>
       <details class="adv">
         <summary>Advanced</summary>
@@ -535,6 +580,33 @@ let held=null,waiting=null;
 const DESK=window.wegoDesktop||null;
 const native=()=>!!(DESK&&DESK.engine&&sip.transport&&sip.transport!=='wss');
 const JSSIP_URL='https://cdn.jsdelivr.net/npm/jssip@3.10.1/dist/jssip.min.js';
+
+/* ---------- theme ---------- */
+const THEMES=['system','light','dark'];
+function applyTheme(t){if(t==='system')delete document.documentElement.dataset.theme;else document.documentElement.dataset.theme=t;
+  for(const id of['themeBtn','themeBtn2'])$(id).title='Theme: '+t[0].toUpperCase()+t.slice(1)}
+let theme=store.get('wego-theme','system');applyTheme(theme);
+for(const id of['themeBtn','themeBtn2'])$(id).onclick=()=>{theme=THEMES[(THEMES.indexOf(theme)+1)%3];store.set('wego-theme',theme);applyTheme(theme);toast('Theme: '+theme[0].toUpperCase()+theme.slice(1))};
+
+/* ---------- call audio + hold settings (this computer) ---------- */
+let audio=Object.assign({agc:true,gate:true,mic:1,spk:1,holdMusic:'',holdName:'Wego Jazz (default)',ann:true,after:30,text:'Please stay on the line, as we value your call.'},store.get('wego-audio',{}));
+function pushAudio(){if(!DESK||!DESK.engine)return;
+  DESK.engine.send({cmd:'setAudio',agc:audio.agc,gate:audio.gate,micGain:+audio.mic,spkGain:+audio.spk});
+  DESK.engine.send({cmd:'setHold',music:audio.holdMusic||'',announce:audio.ann,after:+audio.after||30,text:audio.text})}
+function fillAudio(){$('aAgc').checked=audio.agc;$('aGate').checked=audio.gate;$('aMic').value=audio.mic;$('aSpk').value=audio.spk;
+  $('aMicV').textContent=(+audio.mic).toFixed(1)+'×';$('aSpkV').textContent=(+audio.spk).toFixed(1)+'×';
+  $('hName').textContent=audio.holdName;$('hAnn').checked=audio.ann;$('hAfter').value=audio.after;$('hText').value=audio.text}
+function readAudio(){audio.agc=$('aAgc').checked;audio.gate=$('aGate').checked;audio.mic=+$('aMic').value;audio.spk=+$('aSpk').value;
+  audio.ann=$('hAnn').checked;audio.after=Math.min(600,Math.max(5,+$('hAfter').value||30));audio.text=$('hText').value.trim()||'Please stay on the line, as we value your call.';
+  store.set('wego-audio',audio);fillAudio()}
+let audioT;
+for(const id of['aAgc','aGate','aMic','aSpk','hAnn','hAfter','hText'])$(id).addEventListener(id==='hText'||id==='hAfter'?'change':'input',()=>{readAudio();clearTimeout(audioT);audioT=setTimeout(pushAudio,250)});
+$('hPick').onclick=async()=>{if(!DESK||!DESK.pickAudio)return;const p=await DESK.pickAudio();if(!p)return;
+  audio.holdMusic=p;audio.holdName=p.split(/[\\/]/).pop();store.set('wego-audio',audio);fillAudio();$('hInfo').textContent='Loading…';pushAudio()};
+$('hDef').onclick=()=>{audio.holdMusic='';audio.holdName='Wego Jazz (default)';store.set('wego-audio',audio);fillAudio();$('hInfo').textContent='Original instrumental, free to use';pushAudio()};
+$('hPrev').onclick=()=>{if(!DESK||!DESK.engine)return;readAudio();pushAudio();
+  setTimeout(()=>DESK.engine.send({cmd:'previewHold',seconds:Math.min(90,(+audio.after||30)+12)}),400);toast('Playing hold music on your speaker. The announcement plays after '+audio.after+' s.')};
+$('hStop').onclick=()=>DESK&&DESK.engine&&DESK.engine.send({cmd:'stopPreview'});
 
 /* ---------- sign-in steps ---------- */
 function step(id){for(const f of['fCode','fProf','fPass'])$(f).classList.toggle('hide',f!==id);
@@ -861,7 +933,7 @@ function openSettings(){if(!user)return;
   $('sAuto').checked=!!sip.auto;$('sRec').checked=sip.rec!==false;$('sTeam').value=store.get('wego-team','');
   $('sTr').value=sip.transport||(DESK?'udp':'wss');$('sProxy').value=sip.proxy||'';$('sAA').checked=!!sip.aa;
   if(DESK){DESK.getStartup().then(v=>$('sBoot').checked=!!v).catch(()=>{});DESK.engine.send({cmd:'devices'})}
-  toggleTr();
+  toggleTr();fillAudio();
   $('sMsg').className='msg';$('sMsg').textContent=registered?'Connected and registered as '+sip.user+'@'+sip.domain+'.':'';
   if(inPreview&&!registered)setMsg('bad','You are viewing Wego inside Claude, which blocks phone connections. To take real calls, open the Wego.html file in Chrome on your computer and connect there. You can still save your settings here.');
   $('mSet').classList.remove('hide');setTimeout(()=>$('sUser').focus(),40)}
@@ -912,6 +984,7 @@ async function sipConnect(){
     sipDisconnect(true);engineUsed=true;
     setConn('busy','Connecting…');setMsg('','Registering over '+sip.transport.toUpperCase()+' …');
     DESK.engine.send({cmd:'setDevices',input:Number.isFinite(sip.mic)?sip.mic:-1,output:Number.isFinite(sip.spk)?sip.spk:-1});
+    pushAudio();
     DESK.engine.send({cmd:'register',user:sip.user,auth:sip.auth||'',pass:sip.pass,domain:sip.domain,proxy:sip.proxy||'',transport:sip.transport,expiry:sip.exp||300,display:sip.disp||user.name});
     return}
   if(!sip.wss||!sip.user){openSettings();return}
@@ -1017,6 +1090,7 @@ if(DESK&&DESK.engine){
         else{if(cur&&cur.eid===ev.id)cur.xferTo=ev.target;toast('Call transferred to '+ev.target+'.')}
         break;
       case 'devices':fillDevices(ev);break;
+      case 'hold':$('hInfo').textContent=(ev.seconds?ev.seconds+' s of music':'No music')+(ev.announce?' · announcement ready'+(ev.voice?' ('+ev.voice.replace(/^Microsoft /,'').replace(/ Desktop.*$/,'')+')':''):' · preparing announcement…');break;
       case 'error':toast(ev.msg);break;
       case 'engineExit':
         if(engineUsed){registered=false;setConn('bad','Calling engine stopped – reconnecting');if(cur&&cur.eid)finish('Connection lost');setTimeout(()=>{if(user&&native())sipConnect()},3000)}

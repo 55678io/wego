@@ -1,5 +1,5 @@
 // Wego desktop app (Windows) – Electron main process
-const { app, BrowserWindow, session, shell, ipcMain, Menu, Tray, globalShortcut, nativeImage } = require('electron');
+const { app, BrowserWindow, session, shell, ipcMain, Menu, Tray, globalShortcut, nativeImage, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
@@ -120,6 +120,20 @@ ipcMain.on('wego:openRecordings', () => {
   const dir = path.join(app.getPath('documents'), 'Wego Recordings');
   fs.mkdirSync(dir, { recursive: true });
   shell.openPath(dir);
+});
+// Choose hold music: copied into Wego's own folder so it keeps working if the original moves.
+ipcMain.handle('wego:pickAudio', async () => {
+  const r = await dialog.showOpenDialog(win, {
+    title: 'Choose hold music',
+    properties: ['openFile'],
+    filters: [{ name: 'Audio', extensions: ['mp3', 'wav', 'm4a', 'aac', 'wma'] }]
+  });
+  if (r.canceled || !r.filePaths[0]) return null;
+  const src = r.filePaths[0];
+  const dir = path.join(app.getPath('userData'), 'hold-music');
+  fs.mkdirSync(dir, { recursive: true });
+  const dest = path.join(dir, path.basename(src));
+  try { fs.copyFileSync(src, dest); return dest; } catch { return src; }
 });
 ipcMain.handle('wego:getStartup', () => app.getLoginItemSettings().openAtLogin);
 ipcMain.on('wego:setStartup', (_e, on) => app.setLoginItemSettings({ openAtLogin: !!on, args: ['--hidden'] }));
