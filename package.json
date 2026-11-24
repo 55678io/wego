@@ -65,7 +65,12 @@
         "owner": "55678io",
         "repo": "wego"
       }
-    ]
+    ],
+    "compression": "maximum",
+    "electronLanguages": [
+      "en-US"
+    ],
+    "asar": true
   },
   "dependencies": {
     "electron-updater": "6.3.9"
