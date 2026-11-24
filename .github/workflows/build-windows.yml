@@ -1,11 +1,11 @@
 name: Build Windows app
 
-# Every push to main builds the installer and publishes it as a public GitHub Release.
+# Every push builds the Windows installer.
+# Pushes to main also publish it as a public GitHub Release (and feed auto-update).
 # Permanent download link: https://github.com/55678io/wego/releases/latest/download/Wego-Setup.exe
 on:
   push:
-    branches: [main]
-    tags: ['v*']
+    branches: ['**']
   workflow_dispatch:
 
 permissions:
@@ -17,9 +17,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build SIP engine
+        run: dotnet publish engine/WegoEngine.csproj -c Release -o engine/bin
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      - name: Set version
+        shell: bash
+        run: npm version "1.1.${{ github.run_number }}" --no-git-tag-version --allow-same-version
 
       - name: Install
         run: npm install --no-audit --no-fund
@@ -33,18 +44,24 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Wego-Windows-Installer
-          path: dist/*.exe
+          path: |
+            dist/Wego-Setup.exe
+            dist/latest.yml
           if-no-files-found: error
 
       - name: Publish public release
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+        if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v1.0.{0}', github.run_number) }}
-          name: Wego ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v1.0.{0}', github.run_number) }}
+          tag_name: v1.1.${{ github.run_number }}
+          name: Wego v1.1.${{ github.run_number }}
           target_commitish: ${{ github.sha }}
           make_latest: true
           body: |
             Download and run **Wego-Setup.exe**. No GitHub account needed.
             If Windows shows "Windows protected your PC", click **More info → Run anyway**.
-          files: dist/Wego-Setup.exe
+            Installed copies of Wego update themselves automatically.
+          files: |
+            dist/Wego-Setup.exe
+            dist/Wego-Setup.exe.blockmap
+            dist/latest.yml
