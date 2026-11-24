@@ -8,7 +8,7 @@ Wego is the support team's softphone for Windows: answer and place calls through
 
 No GitHub account is needed. This link always gives the newest version.
 
-To publish a new version, push a tag such as `v1.0.1`. GitHub builds the installer and attaches it to a new Release.
+Every push to `main` builds a new installer and publishes it as a new Release automatically.
 
 Windows may show "Windows protected your PC" because the app is not code-signed. Click **More info → Run anyway**.
 
