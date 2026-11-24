@@ -97,7 +97,14 @@ label{display:block;font-size:13px;font-weight:500;color:var(--mute);margin:14px
 .callbar{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
 .go{background:var(--go);border-color:var(--go);color:#fff;font-weight:600}.go:hover{background:#15803d}
 .stop{background:var(--stop);border-color:var(--stop);color:#fff;font-weight:600}.stop:hover{background:#b91c1c}
-.ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.ctl{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.heldbar{display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px 8px 8px 12px;border:1px solid var(--warn);background:color-mix(in srgb,var(--warn) 10%,var(--panel));border-radius:12px;font-size:13px}
+.heldbar span{flex:1}.heldbar button{min-height:36px;font-size:13px}
+.xfer{display:flex;gap:6px;margin-top:8px}.xfer input{min-height:40px;padding:8px 10px;font-size:15px}.xfer button{flex:none;min-height:40px;font-size:13px;padding:0 10px}
+.upd{position:fixed;left:84px;bottom:20px;z-index:12;display:flex;align-items:center;gap:10px;background:var(--rail);color:#fff;border-radius:12px;padding:8px 8px 8px 14px;font-size:14px}
+.upd button{min-height:36px;font-size:13px}
+.drow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.drow button{min-height:38px;font-size:13px}
+.only-wss,.only-native{}
 .ctl button{font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:56px}
 .ctl button.on{background:var(--accs);border-color:var(--acc);color:var(--acc)}
 .ctl button:disabled{opacity:.45;cursor:not-allowed}
@@ -364,8 +371,12 @@ details.adv summary{cursor:pointer;font-size:14px;font-weight:600;margin-top:18p
         <div class="ctl">
           <button id="bMute" disabled>Mute</button>
           <button id="bHold" disabled>Hold</button>
-          <button id="bRec" disabled>Recording</button>
+          <button id="bXfer" disabled>Transfer</button>
+          <button id="bRec" disabled>Rec</button>
         </div>
+        <form class="xfer hide" id="fXfer"><input id="xferIn" class="mono" placeholder="Transfer to number" inputmode="tel" autocomplete="off" aria-label="Transfer to"><button class="primary" type="submit">Transfer</button><button type="button" id="xferX">Cancel</button></form>
+        <div class="heldbar hide" id="heldbar"><span id="heldTx"></span><button type="button" id="bSwap">Swap</button></div>
+        <div class="upd hide" id="upd"><span id="updTx"></span><button id="updGo" class="primary">Restart now</button></div>
         <button class="demo" id="bDemo">Simulate incoming call (demo)</button>
       </section>
 
@@ -410,7 +421,7 @@ details.adv summary{cursor:pointer;font-size:14px;font-weight:600;margin-top:18p
               <label for="dNotes">Notes</label>
               <textarea id="dNotes" rows="4" placeholder="Issue, resolution, follow-up…"></textarea>
               <div class="err" id="eDet"></div>
-              <div class="dfoot"><button type="button" id="dCancel">Cancel</button><button class="primary" type="submit">Save details</button></div>
+              <div class="dfoot"><button type="button" id="dCall">Call back</button><button type="button" id="dCancel">Cancel</button><button class="primary" type="submit">Save details</button></div>
             </form>
           </div>
         </aside>
@@ -456,9 +467,20 @@ details.adv summary{cursor:pointer;font-size:14px;font-weight:600;margin-top:18p
       </div>
       <label for="sPass">SIP password</label>
       <div class="pwrow"><input id="sPass" type="password"><button type="button" id="sEye">Show</button></div>
+      <div class="g2">
+        <div><label for="sTr">Transport</label><select id="sTr"><option value="udp">UDP (like MicroSIP)</option><option value="tcp">TCP</option><option value="tls">TLS (encrypted)</option><option value="wss">WebRTC / WSS</option></select></div>
+        <div class="only-native"><label for="sProxy">Outbound proxy <span class="muted">(optional)</span></label><input id="sProxy" class="mono" placeholder="sip.provider.com:5060"></div>
+      </div>
+      <p class="hint" id="trHint"></p>
+      <div class="only-wss">
       <label for="sWss">WebSocket (WSS) address</label>
       <input id="sWss" class="mono" placeholder="wss://gc24.yoopbx.com:8089/ws">
       <p class="hint">Ask your phone provider for the "WebRTC" or "WSS" address. Common ports are 443, 7443, 8089 or 8443.</p>
+      </div>
+      <div class="g2 only-native">
+        <div><label for="sMic">Microphone</label><select id="sMic"><option value="-1">System default</option></select></div>
+        <div><label for="sSpk">Speaker / headset</label><select id="sSpk"><option value="-1">System default</option></select></div>
+      </div>
       <details class="adv">
         <summary>Advanced</summary>
         <div class="g2">
@@ -467,11 +489,15 @@ details.adv summary{cursor:pointer;font-size:14px;font-weight:600;margin-top:18p
         </div>
         <label><input type="checkbox" id="sAuto" style="width:auto;margin-right:8px;vertical-align:middle">Connect automatically when I sign in</label>
         <label><input type="checkbox" id="sRec" style="width:auto;margin-right:8px;vertical-align:middle" checked>Record every connected call</label>
+        <label><input type="checkbox" id="sAA" style="width:auto;margin-right:8px;vertical-align:middle">Auto-answer incoming calls after 2 seconds</label>
+        <label class="only-desktop"><input type="checkbox" id="sBoot" style="width:auto;margin-right:8px;vertical-align:middle">Start Wego when Windows starts</label>
+        <p class="hint only-desktop">Hotkeys work from any app: <b>Ctrl+Alt+A</b> answer · <b>Ctrl+Alt+H</b> hang up · <b>Ctrl+Alt+M</b> mute · <b>Ctrl+Alt+W</b> show Wego.</p>
+        <div class="drow only-desktop"><button type="button" id="sRecDir">Open recordings folder</button></div>
       </details>
       <label for="sTeam">Team server <span class="muted">(for live status, call alerts and team chat)</span></label>
       <input id="sTeam" class="mono" placeholder="ws://192.168.1.20:8787">
       <p class="hint">The address shown when you start the Wego Team Server on your Mac mini. Leave empty to share only between tabs on this computer. This setting is shared by all profiles on this computer.</p>
-      <div class="callout"><b>How Wego connects:</b> Wego registers to your phone system over a secure WebSocket (WebRTC), so inbound calls ring here instead of MicroSIP. Your provider must have WebRTC enabled on this extension. If they only offer UDP/TCP (port 5060), Wego will need its desktop version.</div>
+      <div class="callout"><b>How Wego connects:</b> In the Windows app, UDP, TCP and TLS work with any SIP phone system, the same way MicroSIP does. WebRTC / WSS also works in a browser, but only if your provider has WebRTC enabled. Use the same account in either Wego or MicroSIP at a time, unless your provider allows two devices.</div>
       <div class="msg" id="sMsg" role="status"></div>
       <div class="mfoot">
         <button type="button" id="sDisc">Disconnect</button>
@@ -505,6 +531,9 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 let user=null,pending=null,calls=[],cur=null,tick=null,ringT=null,openId=null,filter='all',lastNew=null;
 let sip={},ua=null,registered=false;
+let held=null,waiting=null;
+const DESK=window.wegoDesktop||null;
+const native=()=>!!(DESK&&DESK.engine&&sip.transport&&sip.transport!=='wss');
 const JSSIP_URL='https://cdn.jsdelivr.net/npm/jssip@3.10.1/dist/jssip.min.js';
 
 /* ---------- sign-in steps ---------- */
@@ -528,7 +557,7 @@ function signIn(p){user=p;
   calls=store.get('wego-calls-'+p.id,[]);render();idle();
   $('vGate').classList.add('hide');$('vApp').classList.remove('hide');document.title='Wego · '+p.name;
   sip=store.get('wego-sip-'+p.id,{});setConn('idle','Not connected · Demo mode');
-  if(sip.auto&&sip.wss)sipConnect();
+  if(sip.auto&&(sip.wss||native()))sipConnect();
   teamStart()}
 function signOut(){if(cur){if(cur.session)try{cur.session.terminate()}catch{}finish('Agent signed out')}sipDisconnect();closeDrawer();teamStop();user=null;
   $('vApp').classList.add('hide');$('vGate').classList.remove('hide');step('fCode');document.title='Wego Dialer'}
@@ -539,14 +568,21 @@ $('avail').onchange=e=>{$('sDot').style.background={Available:'var(--go)',Busy:'
 /* ---------- dialer ---------- */
 const KEYS=[['1',''],['2','ABC'],['3','DEF'],['4','GHI'],['5','JKL'],['6','MNO'],['7','PQRS'],['8','TUV'],['9','WXYZ'],['*',''],['0','+'],['#','']];
 $('pad').innerHTML=KEYS.map(([k,s])=>`<button type="button" data-k="${k}">${k}<small>${s}</small></button>`).join('');
-$('pad').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||cur)return;$('dialIn').value+=b.dataset.k;$('dialIn').focus()});
+$('pad').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  if(cur&&cur.answeredAt){sendDtmf(b.dataset.k);return}
+  if(cur)return;$('dialIn').value+=b.dataset.k;$('dialIn').focus()});
+function sendDtmf(k){if(!cur||!cur.answeredAt)return;
+  if(cur.eid)DESK.engine.send({cmd:'dtmf',id:cur.eid,digit:k});
+  else if(cur.session)try{cur.session.sendDTMF(k)}catch{}
+  cur.dtmf=((cur.dtmf||'')+k).slice(-16);$('sCid').textContent='Keypad: '+cur.dtmf;chime(700)}
+document.addEventListener('keydown',e=>{if(!cur||!cur.answeredAt||e.target.closest('input,textarea,select'))return;if(/^[0-9*#]$/.test(e.key))sendDtmf(e.key)});
 $('bDel').onclick=()=>{if(!cur)$('dialIn').value=$('dialIn').value.slice(0,-1)};
 $('dialIn').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();dialOut()}});
 
 function fmt(n){const d=String(n).replace(/\D/g,'');const x=d.length===11&&d[0]==='1'?d.slice(1):d;
   return x.length===10?`+1 (${x.slice(0,3)}) ${x.slice(3,6)}-${x.slice(6)}`:String(n).trim()}
 const mmss=s=>`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
-function setCtl(on){for(const b of['bMute','bHold','bRec']){$(b).disabled=!on;$(b).classList.remove('on')}if(on)$('bRec').classList.add('on')}
+function setCtl(on){for(const b of['bMute','bHold','bXfer','bRec']){$(b).disabled=!on;$(b).classList.remove('on')}$('bMute').textContent='Mute';$('bHold').textContent='Hold';if(on&&sip.rec!==false)$('bRec').classList.add('on');if(!on)$('fXfer').classList.add('hide')}
 function idle(){$('screen').className='screen';$('sSt').textContent='Ready';$('sNum').textContent='';$('sCid').textContent='Enter a number or wait for a call';$('sTm').textContent='';setCtl(false)}
 
 function connect(){cur.answeredAt=Date.now();$('screen').className='screen live';
@@ -557,6 +593,9 @@ function connect(){cur.answeredAt=Date.now();$('screen').className='screen live'
 
 function dialOut(){const v=$('dialIn').value.trim();if(cur||!v){if(!v)toast('Enter a number to call.');return}
   $('dialIn').value='';
+  if(registered&&native()){
+    const id=Date.now();cur={id,eid:'out-'+id,dir:'out',number:fmt(v),name:'',start:Date.now()};ringUI('Calling…');
+    DESK.engine.send({cmd:'call',id:cur.eid,target:v.replace(/\s/g,'')});return}
   if(registered){
     const target=/^[\w.+-]+@/.test(v)?'sip:'+v:'sip:'+v.replace(/[^\d*#+]/g,'')+'@'+sip.domain;
     cur={id:Date.now(),dir:'out',number:fmt(v),name:'',start:Date.now()};ringUI('Calling…');
@@ -567,16 +606,41 @@ function dialOut(){const v=$('dialIn').value.trim();if(cur||!v){if(!v)toast('Ent
 function ringUI(t){$('screen').className='screen ring';$('sSt').textContent=t;$('sNum').textContent=cur.number;$('sCid').textContent=cur.name||'';$('sTm').textContent=''}
 $('bCall').onclick=dialOut;
 $('bHang').onclick=()=>{if(!cur){$('dialIn').value='';return}
+  if(cur.eid){DESK.engine.send({cmd:'hangup',id:cur.eid});return}
   if(cur.session){cur.hungByAgent=true;try{cur.session.terminate()}catch{finish('Agent ended the call')}return}
   finish(cur.answeredAt?'Agent ended the call':'Cancelled by agent before answer')};
 $('bMute').onclick=()=>{if(!cur?.answeredAt)return;cur.mute=!cur.mute;
+  if(cur.eid)DESK.engine.send({cmd:'mute',id:cur.eid,on:cur.mute});
   if(cur.session)try{cur.mute?cur.session.mute({audio:true}):cur.session.unmute({audio:true})}catch{}
   $('bMute').classList.toggle('on',cur.mute);$('bMute').textContent=cur.mute?'Unmute':'Mute'};
 $('bHold').onclick=()=>{if(!cur?.answeredAt)return;cur.hold=!cur.hold;
+  if(cur.eid)DESK.engine.send({cmd:'hold',id:cur.eid,on:cur.hold});
   if(cur.session)try{cur.hold?cur.session.hold():cur.session.unhold()}catch{}
   $('bHold').classList.toggle('on',cur.hold);$('bHold').textContent=cur.hold?'Resume':'Hold'};
 $('bRec').onclick=()=>{if(!cur?.answeredAt)return;cur.norec=!cur.norec;$('bRec').classList.toggle('on',!cur.norec);
+  if(cur.eid)DESK.engine.send({cmd:'record',id:cur.eid,on:!cur.norec});
   if(cur.norec&&cur.recorder?.state==='recording')cur.recorder.pause();else if(!cur.norec&&cur.recorder?.state==='paused')cur.recorder.resume()};
+
+/* transfer */
+$('bXfer').onclick=()=>{if(!cur?.answeredAt)return;$('fXfer').classList.toggle('hide');if(!$('fXfer').classList.contains('hide'))$('xferIn').focus()};
+$('xferX').onclick=()=>$('fXfer').classList.add('hide');
+$('fXfer').addEventListener('submit',e=>{e.preventDefault();const t=$('xferIn').value.trim();if(!t||!cur?.answeredAt)return;
+  if(cur.eid)DESK.engine.send({cmd:'transfer',id:cur.eid,target:t});
+  else if(cur.session){try{cur.session.refer(/@/.test(t)?'sip:'+t:'sip:'+t.replace(/[^\d*#+]/g,'')+'@'+sip.domain);cur.xferTo=t;toast('Transferring to '+t+'…')}catch(err){toast('Transfer failed: '+err.message)}}
+  else{cur.xferTo=t;finish('Transferred to '+t)}
+  $('xferIn').value='';$('fXfer').classList.add('hide')});
+
+/* call waiting: held call */
+function showHeld(){$('heldbar').classList.toggle('hide',!held);if(held)$('heldTx').textContent='On hold: '+held.number+(held.name?' · '+held.name:'')}
+$('bSwap').onclick=()=>{if(!held)return;
+  if(cur&&cur.answeredAt){const a=cur;a.hold=true;if(a.eid)DESK.engine.send({cmd:'hold',id:a.eid,on:true});else if(a.session)try{a.session.hold()}catch{}
+    clearInterval(tick);cur=held;held=a}
+  else{cur=held;held=null}
+  cur.hold=false;if(cur.eid)DESK.engine.send({cmd:'hold',id:cur.eid,on:false});else if(cur.session)try{cur.session.unhold()}catch{}
+  resumeUI();showHeld()};
+function resumeUI(){$('screen').className='screen live';$('sSt').textContent=(cur.dir==='out'?'Outbound':'Inbound')+' call · Connected';
+  $('sNum').textContent=cur.number;$('sCid').textContent=cur.name||'Unknown caller';setCtl(true);
+  clearInterval(tick);tick=setInterval(()=>{if(cur&&cur.answeredAt)$('sTm').textContent=mmss(Math.round((Date.now()-cur.answeredAt)/1000))+(cur.hold?'  ·  On hold':'')+(cur.mute?'  ·  Muted':'')},500)}
 
 /* demo inbound */
 const CALLERS=['Linda Carter','Robert Hayes','Maria Lopez','Daniel Brooks','Susan Miller','Wireless Caller',''];
@@ -587,11 +651,19 @@ $('bDemo').onclick=()=>{if(cur){toast('Finish the current call first.');return}
   cur={id:Date.now(),demo:true,dir:'in',number:fmt(n),name:CALLERS[Math.floor(Math.random()*CALLERS.length)],start:Date.now()};
   showIncoming();
   ringT=setTimeout(()=>{if(cur&&!cur.answeredAt)finish('No answer (ring timeout)')},15000)};
-function showIncoming(){$('iNum').textContent=cur.number;$('iCid').textContent=(cur.name||'Unknown caller')+(cur.demo?' · demo':'');$('incoming').classList.remove('hide');
+function showIncoming(){$('iAns').textContent='Answer';$('iNum').textContent=cur.number;$('iCid').textContent=(cur.name||'Unknown caller')+(cur.demo?' · demo':'');$('incoming').classList.remove('hide');
   ringUI('Incoming call…');$('sCid').textContent=cur.name||'Unknown caller';ringtone(true);desk('Incoming call · '+cur.number,cur.name||'Unknown caller',true)}
-$('iAns').onclick=()=>{if(!cur)return;clearTimeout(ringT);ringtone(false);$('incoming').classList.add('hide');
+$('iAns').onclick=()=>{
+  if(waiting){const w=waiting;waiting=null;ringtone(false);$('incoming').classList.add('hide');
+    if(cur){cur.hold=true;clearInterval(tick);held=cur;showHeld()}   // engine puts the first call on hold itself
+    cur=w;DESK.engine.send({cmd:'answer',id:w.eid});return}
+  if(!cur)return;clearTimeout(ringT);ringtone(false);$('incoming').classList.add('hide');
+  if(cur.eid){DESK.engine.send({cmd:'answer',id:cur.eid});return}
   if(cur.session){try{cur.session.answer(mediaOpts())}catch(err){toast('Could not answer: '+err.message)}}else connect()};
-$('iDec').onclick=()=>{if(!cur)return;ringtone(false);
+$('iDec').onclick=()=>{
+  if(waiting){DESK.engine.send({cmd:'reject',id:waiting.eid,code:486});return}
+  if(!cur)return;ringtone(false);
+  if(cur.eid){cur.declined=true;DESK.engine.send({cmd:'reject',id:cur.eid,code:486});return}
   if(cur.session){cur.declined=true;try{cur.session.terminate({status_code:486,reason_phrase:'Busy Here'})}catch{finish('Declined by agent')}}else finish('Declined by agent')};
 
 function finish(reason){clearTimeout(ringT);clearInterval(tick);ringtone(false);$('incoming').classList.add('hide');
@@ -601,11 +673,14 @@ function finish(reason){clearTimeout(ringT);clearInterval(tick);ringtone(false);
   const status=c.dir==='out'?'Outgoing':(c.answeredAt?'Answered':'Missed');
   if(c.recorder&&c.recorder.state!=='inactive')try{c.recorder.stop()}catch{}
   if(c.mixCtx)setTimeout(()=>c.mixCtx.close().catch(()=>{}),500);
-  const rec={id:c.id||Date.now(),demo:!!c.demo,number:c.number,name:c.name,status,connected:!!c.answeredAt,start:c.start,dur,reason,agent:user.name,zip:'',email:'',notes:'',rec:!!c.answeredAt&&!c.norec};
+  const rec={id:c.id||Date.now(),recPath:c.recPath||null,demo:!!c.demo,number:c.number,name:c.name,status,connected:!!c.answeredAt,start:c.start,dur,reason,agent:user.name,zip:'',email:'',notes:'',rec:!!c.answeredAt&&!c.norec};
   calls.unshift(rec);lastNew=rec.id;save();idle();render();
   if(c.answeredAt)teamSend({type:'ended',number:c.number,name:c.name||'',dur,dir:c.dir});
   sendPresence();
-  toast(status==='Missed'?'Missed call from '+c.number:'Call logged · '+mmss(dur))}
+  toast(status==='Missed'?'Missed call from '+c.number:'Call logged · '+mmss(dur));
+  if(held){cur=held;held=null;showHeld();resumeUI();$('sSt').textContent='Call on hold – press Hold to resume';$('bHold').classList.add('on');$('bHold').textContent='Resume'}}
+function logCall(c,status,reason){calls.unshift({id:c.id||Date.now(),number:c.number,name:c.name||'',status,connected:false,start:c.start||Date.now(),dur:0,reason,agent:user.name,zip:'',email:'',notes:'',rec:false});
+  lastNew=calls[0].id;save();render()}
 function save(){store.set('wego-calls-'+user.id,calls)}
 
 /* ---------- sheet ---------- */
@@ -653,7 +728,10 @@ function openDrawer(id){const c=calls.find(x=>x.id===id);if(!c)return;openId=id;
     ['Date',d.toLocaleDateString([], {weekday:'short',month:'short',day:'numeric',year:'numeric'})],['Time',d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit',second:'2-digit'})],
     ['Hang-up reason',c.reason,'wide'],['Handled by',c.agent],['Direction',c.status==='Outgoing'?'Outbound':'Inbound']
   ].map(([l,v,w])=>`<div class="${w||''}"><span>${l}</span><b>${esc(v)}</b></div>`).join('');
-  if(!c.rec)$('rec').innerHTML=`<p style="margin:0">${c.connected?'Recording was turned off for this call.':'No recording. The call was not connected.'}</p>`;
+  if(c.recPath){const u='file:///'+c.recPath.replace(/\\/g,'/').replace(/^\/+/,'').split('/').map(encodeURIComponent).join('/').replace(/^([A-Za-z])%3A/,'$1:');
+    $('rec').innerHTML=`<audio controls src="${esc(u)}"></audio><p>Left: customer · Right: agent · <a href="#" id="recShow">Show in folder</a></p>`;
+    $('recShow').onclick=ev=>{ev.preventDefault();DESK&&DESK.showItem(c.recPath)}}
+  else if(!c.rec)$('rec').innerHTML=`<p style="margin:0">${c.connected?'Recording was turned off for this call.':'No recording. The call was not connected.'}</p>`;
   else if(c.demo)$('rec').innerHTML=`<audio controls preload="none" src="${demoWav(Math.min(Math.max(c.dur,2),8))}"></audio><p>Demo call. Real calls through your phone system save the actual recording here.</p>`;
   else{$('rec').innerHTML='<p style="margin:0">Loading recording…</p>';
     getRec(c.id).then(b=>{if(openId!==c.id)return;
@@ -663,7 +741,9 @@ function openDrawer(id){const c=calls.find(x=>x.id===id);if(!c)return;openId=id;
   $('dName').value=c.name||'';$('dNum').value=c.number;$('dZip').value=c.zip||'';$('dEmail').value=c.email||'';$('dNotes').value=c.notes||'';$('eDet').textContent='';
   $('drawer').classList.add('open');render();setTimeout(()=>$('dName').focus(),60)}
 function closeDrawer(){$('drawer').classList.remove('open');openId=null;if(user)render()}
-$('dClose').onclick=closeDrawer;$('dCancel').onclick=closeDrawer;
+$('dClose').onclick=closeDrawer;
+$('dCall').onclick=()=>{const c=calls.find(x=>x.id===openId);if(!c)return;if(cur){toast('Finish the current call first.');return}
+  closeDrawer();$('dialIn').value=c.number.replace(/[^\d+]/g,'');dialOut()};$('dCancel').onclick=closeDrawer;
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&openId)closeDrawer()});
 $('fDet').addEventListener('submit',e=>{e.preventDefault();const c=calls.find(x=>x.id===openId);if(!c)return;
   const zip=$('dZip').value.trim(),email=$('dEmail').value.trim();
@@ -779,10 +859,25 @@ function openSettings(){if(!user)return;
   $('sDisp').value=sip.disp||user.name;$('sUser').value=sip.user||'';$('sDomain').value=sip.domain||'';$('sAuth').value=sip.auth||'';
   $('sPass').value=sip.pass||'';$('sWss').value=sip.wss||'';$('sStun').value=sip.stun||'';$('sExp').value=sip.exp||'';
   $('sAuto').checked=!!sip.auto;$('sRec').checked=sip.rec!==false;$('sTeam').value=store.get('wego-team','');
+  $('sTr').value=sip.transport||(DESK?'udp':'wss');$('sProxy').value=sip.proxy||'';$('sAA').checked=!!sip.aa;
+  if(DESK){DESK.getStartup().then(v=>$('sBoot').checked=!!v).catch(()=>{});DESK.engine.send({cmd:'devices'})}
+  toggleTr();
   $('sMsg').className='msg';$('sMsg').textContent=registered?'Connected and registered as '+sip.user+'@'+sip.domain+'.':'';
   if(inPreview&&!registered)setMsg('bad','You are viewing Wego inside Claude, which blocks phone connections. To take real calls, open the Wego.html file in Chrome on your computer and connect there. You can still save your settings here.');
   $('mSet').classList.remove('hide');setTimeout(()=>$('sUser').focus(),40)}
 function closeSettings(){$('mSet').classList.add('hide')}
+function toggleTr(){const t=$('sTr').value,w=t==='wss';
+  document.querySelectorAll('.only-wss').forEach(e=>e.classList.toggle('hide',!w));
+  document.querySelectorAll('.only-native').forEach(e=>e.classList.toggle('hide',w||!DESK));
+  document.querySelectorAll('.only-desktop').forEach(e=>e.classList.toggle('hide',!DESK));
+  $('trHint').textContent=w?'Works in the browser and the app, if your provider has WebRTC enabled.'
+    :DESK?'Direct SIP, the same way MicroSIP connects. Usually UDP on port 5060.'
+    :'UDP, TCP and TLS work only in the Wego Windows app. In the browser, choose WebRTC / WSS.'}
+$('sTr').onchange=toggleTr;
+$('sBoot').onchange=e=>DESK&&DESK.setStartup(e.target.checked);
+$('sRecDir').onclick=()=>DESK&&DESK.openRecordings();
+function fillDevices(ev){const put=(sel,list,v)=>{$(sel).innerHTML='<option value="-1">System default</option>'+(list||[]).map(d=>`<option value="${+d.index}">${esc(d.name)}</option>`).join('');$(sel).value=String(v??-1);if($(sel).value==='')$(sel).value='-1'};
+  put('sMic',ev.inputs,sip.mic);put('sSpk',ev.outputs,sip.spk)}
 $('railSet').onclick=openSettings;$('conn').onclick=openSettings;$('mClose').onclick=closeSettings;
 $('mSet').addEventListener('click',e=>{if(e.target===$('mSet'))closeSettings()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('mSet').classList.contains('hide'))closeSettings()});
@@ -790,12 +885,14 @@ $('sEye').onclick=()=>{const p=$('sPass');p.type=p.type==='password'?'text':'pas
 function readForm(){
   let wss=$('sWss').value.trim();if(wss&&!/^wss?:\/\//i.test(wss))wss='wss://'+wss;
   return{disp:$('sDisp').value.trim(),user:$('sUser').value.trim(),domain:$('sDomain').value.trim().replace(/^sips?:/i,'').replace(/\/.*$/,''),
-    auth:$('sAuth').value.trim(),pass:$('sPass').value,wss,stun:$('sStun').value.trim(),exp:+$('sExp').value||0,auto:$('sAuto').checked,rec:$('sRec').checked}}
+    auth:$('sAuth').value.trim(),pass:$('sPass').value,wss,transport:$('sTr').value,proxy:$('sProxy').value.trim(),
+    mic:+$('sMic').value,spk:+$('sSpk').value,aa:$('sAA').checked,stun:$('sStun').value.trim(),exp:+$('sExp').value||0,auto:$('sAuto').checked,rec:$('sRec').checked}}
 function saveTeam(){let t=$('sTeam').value.trim();if(t&&!/^wss?:\/\//i.test(t))t='ws://'+t;
   if(t!==store.get('wego-team','')){store.set('wego-team',t);teamWsStart()}}
 function saveForm(){saveTeam();const f=readForm();
   if(!f.user&&!f.domain&&!f.pass&&!f.wss){setMsg('ok','Team server saved. Add your SIP account to take real calls.');return false}
-  if(!f.user||!f.domain||!f.pass||!f.wss){setMsg('bad','Fill in username, domain, password and WebSocket address.');return false}
+  if(f.transport!=='wss'&&!DESK){setMsg('bad','UDP, TCP and TLS need the Wego Windows app. Choose WebRTC / WSS here.');return false}
+  if(!f.user||!f.domain||!f.pass||(f.transport==='wss'&&!f.wss)){setMsg('bad',f.transport==='wss'?'Fill in username, domain, password and WebSocket address.':'Fill in username, domain and password.');return false}
   sip=f;store.set('wego-sip-'+user.id,sip);return true}
 $('sSave').onclick=()=>{if(saveForm())setMsg('ok','Settings saved.')};
 $('fSip').addEventListener('submit',e=>{e.preventDefault();if(saveForm())sipConnect()});
@@ -810,6 +907,13 @@ function loadJsSIP(){if(window.JsSIP)return Promise.resolve();
     s.onerror=()=>rej(new Error('Could not load the SIP library. Check your internet connection.'));document.head.appendChild(s)})}
 
 async function sipConnect(){
+  if(native()){
+    if(!sip.user||!sip.domain){openSettings();return}
+    sipDisconnect(true);engineUsed=true;
+    setConn('busy','Connecting…');setMsg('','Registering over '+sip.transport.toUpperCase()+' …');
+    DESK.engine.send({cmd:'setDevices',input:Number.isFinite(sip.mic)?sip.mic:-1,output:Number.isFinite(sip.spk)?sip.spk:-1});
+    DESK.engine.send({cmd:'register',user:sip.user,auth:sip.auth||'',pass:sip.pass,domain:sip.domain,proxy:sip.proxy||'',transport:sip.transport,expiry:sip.exp||300,display:sip.disp||user.name});
+    return}
   if(!sip.wss||!sip.user){openSettings();return}
   if(inPreview){setConn('bad','Preview – open Wego.html to connect');setMsg('bad','Real calls cannot connect inside the Claude preview. Open the Wego.html file in Chrome on your computer, sign in, and press Save & connect there.');return}
   sipDisconnect(true);setConn('busy','Connecting…');setMsg('','Connecting to '+sip.wss+' …');
@@ -834,7 +938,9 @@ async function sipConnect(){
   ua.on('newRTCSession',e=>onSession(e));
   ua.start()}
 
+let engineUsed=false;
 function sipDisconnect(silent){registered=false;
+  if(engineUsed&&DESK){DESK.engine.send({cmd:'unregister'});engineUsed=false}
   if(ua){const u=ua;ua=null;try{u.stop()}catch{}}
   if(!silent&&user)setConn('idle','Not connected · Demo mode')}
 
@@ -848,7 +954,8 @@ function onSession(e){const s=e.session;
         reason:cur?'Rejected – agent was on another call':'Rejected – agent status was '+$('avail').value,agent:user.name,zip:'',email:'',notes:'',rec:false});save();render();return}
     const ri=s.remote_identity;
     cur={id:Date.now(),dir:'in',number:fmt(ri.uri.user),name:ri.display_name||'',start:Date.now(),session:s};
-    bindSession(s);showIncoming()}
+    bindSession(s);showIncoming();
+    if(sip.aa){const me=cur;ringT=setTimeout(()=>{if(cur===me&&!me.answeredAt)$('iAns').click()},2000)}}
 }
 function bindSession(s){const me=cur;me.session=s;
   const hook=pc=>{if(!pc||pc._wego)return;pc._wego=true;
@@ -870,6 +977,57 @@ function reasonText(ev,c,wasUp){const C=JsSIP.C.causes,o=ev.originator,k=ev.caus
   if(k===C.CONNECTION_ERROR||k===C.REQUEST_TIMEOUT||k===C.RTP_TIMEOUT)return'Connection lost';
   if(k===C.SIP_FAILURE_CODE&&ev.message?.status_code)return'Failed – SIP '+ev.message.status_code+' '+(ev.message.reason_phrase||'');
   return(o==='local'?'Ended by agent':'Ended by customer')+(k?' ('+k+')':'')}
+
+/* ---------- native engine events (UDP / TCP / TLS) ---------- */
+function engIncoming(ev){
+  const c={id:Date.now(),eid:ev.id,dir:'in',number:fmt(ev.number||'Unknown'),name:ev.name||'',start:Date.now()};
+  if($('avail').value!=='Available'){DESK.engine.send({cmd:'reject',id:ev.id,code:486});logCall(c,'Missed','Rejected – agent status was '+$('avail').value);return}
+  if(cur&&cur.answeredAt&&!held&&!waiting){waiting=c;
+    $('iNum').textContent=c.number;$('iCid').textContent=(c.name||'Unknown caller')+' · call waiting';$('iAns').textContent='Hold & answer';
+    $('incoming').classList.remove('hide');chime(600);desk('Call waiting · '+c.number,c.name||'Unknown caller',true);return}
+  if(cur||waiting){DESK.engine.send({cmd:'reject',id:ev.id,code:486});logCall(c,'Missed','Rejected – agent was busy on other calls');return}
+  cur=c;showIncoming();
+  if(sip.aa)ringT=setTimeout(()=>{if(cur===c&&!c.answeredAt)$('iAns').click()},2000)}
+function engEnded(ev){
+  if(waiting&&waiting.eid===ev.id){const w=waiting;waiting=null;$('incoming').classList.add('hide');logCall(w,'Missed',ev.reason||'Caller hung up');return}
+  if(held&&held.eid===ev.id){const h=held;held=null;showHeld();
+    const dur=h.answeredAt?Math.max(1,Math.round((Date.now()-h.answeredAt)/1000)):0;
+    calls.unshift({id:h.id,recPath:ev.recording||null,number:h.number,name:h.name||'',status:h.dir==='out'?'Outgoing':'Answered',connected:true,start:h.start,dur,reason:(ev.by==='remote'?'Customer ended the call while on hold':ev.reason),agent:user.name,zip:'',email:'',notes:'',rec:!!ev.recording});
+    lastNew=calls[0].id;save();render();teamSend({type:'ended',number:h.number,name:h.name||'',dur,dir:h.dir});return}
+  if(cur&&cur.eid===ev.id){cur.recPath=ev.recording||null;
+    let r=ev.reason||'Call ended';if(cur.declined)r='Declined by agent';if(cur.xferTo&&ev.by==='local')r='Transferred to '+cur.xferTo;
+    finish(r)}}
+if(DESK&&DESK.engine){
+  DESK.engine.on(ev=>{if(!user||!ev)return;
+    switch(ev.ev){
+      case 'reg':
+        if(ev.state==='ok'){registered=true;setConn('ok','Connected · '+sip.user+' · '+String(sip.transport||'').toUpperCase());setMsg('ok','Registered as '+sip.user+'@'+sip.domain+'. Calls will ring in Wego.');toast('Phone system connected.')}
+        else if(ev.state==='failed'){registered=false;setConn('bad','Registration failed');setMsg('bad','Registration failed: '+ev.reason)}
+        else if(ev.state==='retrying'){registered=false;setConn('busy','Retrying…');setMsg('bad','Problem: '+ev.reason+'. Retrying…')}
+        else if(ev.state==='connecting')setConn('busy','Connecting…');
+        else if(ev.state==='off'){registered=false;setConn('idle','Not connected · Demo mode')}
+        break;
+      case 'incoming':engIncoming(ev);break;
+      case 'ringing':if(cur&&cur.eid===ev.id)$('sSt').textContent='Ringing…';break;
+      case 'answered':if(cur&&cur.eid===ev.id&&!cur.answeredAt)connect();break;
+      case 'ended':engEnded(ev);break;
+      case 'transfer':
+        if(ev.state==='trying')toast('Transferring to '+ev.target+'…');
+        else if(ev.state==='failed')toast('Transfer to '+ev.target+' failed.');
+        else{if(cur&&cur.eid===ev.id)cur.xferTo=ev.target;toast('Call transferred to '+ev.target+'.')}
+        break;
+      case 'devices':fillDevices(ev);break;
+      case 'error':toast(ev.msg);break;
+      case 'engineExit':
+        if(engineUsed){registered=false;setConn('bad','Calling engine stopped – reconnecting');if(cur&&cur.eid)finish('Connection lost');setTimeout(()=>{if(user&&native())sipConnect()},3000)}
+        break}});
+  DESK.onHotkey(a=>{
+    if(a==='answer'&&!$('incoming').classList.contains('hide'))$('iAns').click();
+    else if(a==='hangup')$('bHang').click();
+    else if(a==='mute')$('bMute').click()});
+  DESK.onUpdate(u=>{if(u.state==='ready'){$('updTx').textContent='Wego '+u.version+' is ready to install.';$('upd').classList.remove('hide')}});
+  $('updGo').onclick=()=>{if(cur){toast('Finish the current call first.');return}DESK.installUpdate()};
+}
 
 /* recording: mix agent mic + customer audio into one file, stored in this browser */
 function startRecording(c){try{
